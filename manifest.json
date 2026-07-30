@@ -1,0 +1,9 @@
+{
+  "id": "ntfy-sync",
+  "name": "Ntfy Sync",
+  "version": "0.1.2",
+  "minAppVersion": "1.12.7",
+  "description": "Receive ntfy messages and route them into deterministic, recoverable Markdown notes.",
+  "author": "van",
+  "isDesktopOnly": true
+}
