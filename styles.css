@@ -1,0 +1,345 @@
+.ntfy-sync-status {
+  align-items: center;
+  border-radius: var(--radius-s);
+  display: inline-flex;
+  justify-content: center;
+  min-width: 1.6rem;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.ntfy-sync-status:hover,
+.ntfy-sync-status:focus-visible {
+  background-color: var(--background-modifier-hover);
+}
+
+.ntfy-sync-status svg {
+  height: 1rem;
+  width: 1rem;
+}
+
+.ntfy-sync-status[data-status="off"],
+.ntfy-sync-status[data-status="idle"] {
+  color: var(--text-muted);
+}
+
+.ntfy-sync-status[data-status="monitor_only"] {
+  color: var(--color-yellow);
+}
+
+.ntfy-sync-status[data-status="connecting"],
+.ntfy-sync-status[data-status="polling"] {
+  color: var(--interactive-accent);
+}
+
+.ntfy-sync-status[data-status="connected"] {
+  color: var(--color-green);
+}
+
+.ntfy-sync-status[data-status="backoff"] {
+  color: var(--color-orange);
+}
+
+.ntfy-sync-status[data-status="error"] {
+  color: var(--color-red);
+}
+
+.ntfy-sync-status[data-status="connecting"] svg {
+  animation: ntfy-sync-status-pulse 1.25s ease-in-out infinite;
+}
+
+.ntfy-sync-status[data-status="polling"] svg {
+  animation: ntfy-sync-status-breathe 1.8s ease-in-out infinite;
+}
+
+.tooltip.ntfy-sync-status-tooltip {
+  --ntfy-sync-tooltip-background: color-mix(
+    in srgb,
+    var(--background-secondary) 92%,
+    var(--text-normal) 8%
+  );
+  background-color: var(--ntfy-sync-tooltip-background);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  line-height: var(--line-height-normal);
+  max-width: min(24rem, calc(100vw - 2rem));
+  min-width: min(20rem, calc(100vw - 2rem));
+  padding: var(--size-4-2) var(--size-4-3);
+  text-align: left;
+  white-space: pre-line;
+}
+
+.ntfy-sync-status-tooltip-title {
+  font-weight: var(--font-semibold);
+}
+
+.ntfy-sync-status-tooltip-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.ntfy-sync-status-tooltip-row {
+  column-gap: var(--size-4-4);
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.ntfy-sync-status-tooltip-label {
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.ntfy-sync-status-tooltip-value {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.tooltip.ntfy-sync-status-tooltip.mod-top .tooltip-arrow {
+  border-top-color: var(--ntfy-sync-tooltip-background);
+}
+
+.tooltip.ntfy-sync-status-tooltip.mod-bottom .tooltip-arrow {
+  border-bottom-color: var(--ntfy-sync-tooltip-background);
+}
+
+.tooltip.ntfy-sync-status-tooltip.mod-left .tooltip-arrow {
+  border-left-color: var(--ntfy-sync-tooltip-background);
+}
+
+.tooltip.ntfy-sync-status-tooltip.mod-right .tooltip-arrow {
+  border-right-color: var(--ntfy-sync-tooltip-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ntfy-sync-status svg {
+    animation: none !important;
+  }
+}
+
+@keyframes ntfy-sync-status-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ntfy-sync-status-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.ntfy-sync-settings .setting-item.is-invalid .setting-item-description {
+  color: var(--text-error);
+}
+
+.ntfy-sync-settings .setting-item.is-invalid input {
+  border-color: var(--text-error);
+}
+
+.ntfy-sync-settings .ntfy-sync-control-14rem .setting-item-control {
+  flex: 0 0 14rem;
+  max-width: 100%;
+  width: min(14rem, 100%);
+}
+
+.ntfy-sync-settings .ntfy-sync-control-14rem input[type="text"] {
+  width: 100%;
+}
+
+.ntfy-sync-settings textarea,
+.ntfy-sync-rule-modal textarea {
+  min-height: 12rem;
+  width: 100%;
+  font-family: var(--font-monospace);
+}
+
+.ntfy-sync-rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2-2);
+  margin-inline: var(--size-4-4);
+}
+
+.ntfy-sync-rule-card {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: var(--size-4-3);
+  background: var(--background-secondary);
+}
+
+.ntfy-sync-rule-card .setting-item-info,
+.ntfy-sync-rule-card-heading {
+  min-width: 0;
+}
+
+.ntfy-sync-rule-card-heading {
+  align-items: baseline;
+  display: flex;
+  gap: var(--size-4-2);
+  white-space: nowrap;
+}
+
+.ntfy-sync-rule-card-name {
+  flex: 0 0 auto;
+}
+
+.ntfy-sync-rule-card-note-path {
+  color: var(--text-muted);
+  flex: 1 1 auto;
+  font-size: var(--font-ui-smaller);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ntfy-sync-rule-card.is-disabled {
+  opacity: 0.65;
+}
+
+.ntfy-sync-rule-empty {
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  color: var(--text-muted);
+  padding: var(--size-4-4);
+}
+
+.ntfy-sync-rule-modal {
+  width: min(56rem, 94vw);
+  max-height: 90vh;
+}
+
+.ntfy-sync-rule-modal .modal-content {
+  overflow-y: auto;
+}
+
+.ntfy-sync-rule-modal textarea {
+  min-height: 4.5rem;
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-path-setting .setting-item-info {
+  min-width: 0;
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-path-setting .setting-item-control {
+  flex: 0 0 26rem;
+  width: min(26rem, 100%);
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-path-search {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-path-search .ntfy-sync-rule-path-input {
+  width: 100%;
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-mime-search {
+  flex: 0 1 18rem;
+  width: min(18rem, 100%);
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-mime-search .ntfy-sync-rule-mime-input {
+  width: 100%;
+}
+
+.ntfy-sync-mime-suggestion-container {
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.ntfy-sync-mime-suggestion {
+  align-items: baseline;
+  column-gap: var(--size-4-3);
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  padding-inline: var(--size-4-2) 0;
+}
+
+.ntfy-sync-mime-suggestion-label {
+  color: var(--text-normal);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ntfy-sync-mime-suggestion-value {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-identity .setting-item-control {
+  flex-wrap: nowrap;
+}
+
+.ntfy-sync-rule-modal .ntfy-sync-rule-name-input {
+  flex: 0 1 20rem;
+  min-width: 0;
+  width: min(20rem, 100%);
+}
+
+.ntfy-sync-rule-condition .setting-item-control {
+  flex-wrap: wrap;
+}
+
+.ntfy-sync-rule-condition input,
+.ntfy-sync-rule-modal .setting-item-control > input,
+.ntfy-sync-rule-modal .setting-item-control > textarea {
+  min-width: 12rem;
+}
+
+.ntfy-sync-rule-validation {
+  min-height: var(--line-height-normal);
+  color: var(--text-error);
+  margin: var(--size-4-2) 0;
+}
+
+.ntfy-sync-rule-modal-footer .setting-item-control {
+  gap: var(--size-4-2);
+}
+
+@media (max-width: 700px) {
+  .ntfy-sync-rule-card,
+  .ntfy-sync-rule-modal .setting-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ntfy-sync-rule-card .setting-item-control,
+  .ntfy-sync-rule-modal .setting-item-control {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .ntfy-sync-rule-modal .ntfy-sync-rule-path-setting .setting-item-control {
+    flex: 0 1 auto;
+  }
+
+  .ntfy-sync-rule-modal .ntfy-sync-rule-conditions-heading {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .ntfy-sync-rule-modal .ntfy-sync-rule-conditions-heading .setting-item-control {
+    justify-content: flex-end;
+    width: auto;
+  }
+}
