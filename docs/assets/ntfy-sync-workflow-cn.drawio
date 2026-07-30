@@ -1,0 +1,63 @@
+<mxfile host="65bd71144e">
+    <diagram id="g6a979ntU8okuYCl8vyG" name="pageWithNumber">
+        <mxGraphModel dx="1406" dy="2060" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <UserObject label="&lt;b&gt;1. 消息源&lt;/b&gt;&#xa;手机 App&#xa;浏览器 ntfy 扩展&#xa;自动化脚本" mermaidId="n:sources" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e8f1ff;strokeColor=#4c78a8;fontColor=#172b4d;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="&lt;b&gt;1. 消息源&lt;/b&gt;&#xa;手机 App&#xa;浏览器 ntfy 扩展&#xa;自动化脚本" id="2">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e8f1ff;strokeColor=#4c78a8;fontColor=#172b4d;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" parent="1" vertex="1">
+                        <mxGeometry x="20" width="159" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;2. ntfy.sh 服务器&lt;/b&gt;&#xa;Topic 发布与订阅&#xa;缓存与回放" mermaidId="n:server" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0d9;strokeColor=#e6952e;fontColor=#5c3510;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="&lt;b&gt;2. ntfy.sh 服务器&lt;/b&gt;&#xa;Topic 发布与订阅&#xa;缓存与回放" id="3">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0d9;strokeColor=#e6952e;fontColor=#5c3510;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" parent="1" vertex="1">
+                        <mxGeometry x="319" width="161" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;3. Ntfy Sync 插件&lt;/b&gt;&lt;br&gt;首条匹配路由&lt;div&gt;&lt;span style=&quot;color: rgb(23, 63, 43);&quot;&gt;持久化收件箱&lt;/span&gt;&lt;/div&gt;" mermaidId="n:plugin" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e9f7ef;strokeColor=#2f855a;fontColor=#173f2b;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="&lt;b&gt;3. Ntfy Sync 插件&lt;/b&gt;&#xa;Stream 或 Poll&#xa;持久化收件箱与首条匹配路由" id="4">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e9f7ef;strokeColor=#2f855a;fontColor=#173f2b;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" parent="1" vertex="1">
+                        <mxGeometry x="620" width="160" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;4. Markdown 队列&lt;/b&gt;&#xa;分类笔记与附件&#xa;幂等标记" mermaidId="n:markdown" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#f2ebff;strokeColor=#7b61a8;fontColor=#35254f;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="&lt;b&gt;4. Markdown 队列&lt;/b&gt;&#xa;分类笔记与附件&#xa;幂等标记" id="5">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#f2ebff;strokeColor=#7b61a8;fontColor=#35254f;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" parent="1" vertex="1">
+                        <mxGeometry x="920" width="160" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;5. 可选剪藏 Worker&lt;/b&gt;&#xa;消费待处理链接&#xa;拉取并补全剪藏内容" mermaidId="n:workers" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0f3;strokeColor=#c94f6d;fontColor=#5a2030;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="&lt;b&gt;5. 可选剪藏 Worker&lt;/b&gt;&#xa;消费待处理链接&#xa;拉取并补全剪藏内容" id="6">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0f3;strokeColor=#c94f6d;fontColor=#5a2030;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" parent="1" vertex="1">
+                        <mxGeometry x="1220" width="180" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="HTTPS 发布" mermaidId="e:sources-&gt;server#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.49;" mermaidBaseValue="HTTPS 发布" id="7">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.49;" parent="1" source="2" target="3" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;span&gt;NDJSON Stream&lt;/span&gt;&lt;div&gt;&lt;span&gt;或&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span&gt;Poll&lt;/span&gt;&lt;/div&gt;" mermaidId="e:server-&gt;plugin#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.49;entryX=0;entryY=0.49;" mermaidBaseValue="NDJSON Stream 或 Poll" id="8">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.49;entryX=0;entryY=0.49;" parent="1" source="3" target="4" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="校验&lt;div&gt;路由&lt;/div&gt;&lt;div&gt;写入&lt;/div&gt;" mermaidId="e:plugin-&gt;markdown#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.49;entryX=0;entryY=0.49;" mermaidBaseValue="校验、路由、写入" id="9">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.49;entryX=0;entryY=0.49;" parent="1" source="4" target="5" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="监听&lt;div&gt;消费&lt;/div&gt;" mermaidId="e:markdown-&gt;workers#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.49;entryX=0;entryY=0.49;" mermaidBaseValue="监听或消费" id="10">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.49;entryX=0;entryY=0.49;" parent="1" source="5" target="6" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

@@ -1,0 +1,63 @@
+<mxfile host="drawio">
+    <diagram id="R8EtN5eviTKD-iO2X9zj" name="pageWithNumber">
+        <mxGraphModel dx="1406" dy="2060" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <UserObject label="&lt;b&gt;1. Message sources&lt;/b&gt;&#xa;Mobile apps&#xa;ntfy browser extension&#xa;Automation scripts" mermaidId="n:sources" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e8f1ff;strokeColor=#4c78a8;fontColor=#172b4d;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" mermaidBaseValue="&lt;b&gt;1. Message sources&lt;/b&gt;&#xa;Mobile apps&#xa;ntfy browser extension&#xa;Automation scripts" id="2">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e8f1ff;strokeColor=#4c78a8;fontColor=#172b4d;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" parent="1" vertex="1">
+                        <mxGeometry x="20" width="200" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;2. ntfy.sh server&lt;/b&gt;&#xa;Topic publish and subscribe&#xa;Cache and replay" mermaidId="n:server" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0d9;strokeColor=#e6952e;fontColor=#5c3510;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" mermaidBaseValue="&lt;b&gt;2. ntfy.sh server&lt;/b&gt;&#xa;Topic publish and subscribe&#xa;Cache and replay" id="3">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0d9;strokeColor=#e6952e;fontColor=#5c3510;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" parent="1" vertex="1">
+                        <mxGeometry x="400" width="200" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;3. Ntfy Sync plugin&lt;/b&gt;&lt;br&gt;First-match routing&lt;div&gt;Durable inbox&lt;/div&gt;" mermaidId="n:plugin" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e9f7ef;strokeColor=#2f855a;fontColor=#173f2b;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" mermaidBaseValue="&lt;b&gt;3. Ntfy Sync plugin&lt;/b&gt;&#xa;First-match routing&#xa;Durable inbox" id="4">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#e9f7ef;strokeColor=#2f855a;fontColor=#173f2b;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" parent="1" vertex="1">
+                        <mxGeometry x="780" width="200" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;4. Markdown queues&lt;/b&gt;&#xa;Routed notes and attachments&#xa;Idempotency marker" mermaidId="n:markdown" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#f2ebff;strokeColor=#7b61a8;fontColor=#35254f;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" mermaidBaseValue="&lt;b&gt;4. Markdown queues&lt;/b&gt;&#xa;Routed notes and attachments&#xa;Idempotency marker" id="5">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#f2ebff;strokeColor=#7b61a8;fontColor=#35254f;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" parent="1" vertex="1">
+                        <mxGeometry x="1160" width="200" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="&lt;b&gt;5. Optional clipping workers&lt;/b&gt;&#xa;Consume queued links&#xa;Fetch and enrich clipped content" mermaidId="n:workers" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0f3;strokeColor=#c94f6d;fontColor=#5a2030;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" mermaidBaseValue="&lt;b&gt;5. Optional clipping workers&lt;/b&gt;&#xa;Consume queued links&#xa;Fetch and enrich clipped content" id="6">
+                    <mxCell style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#fff0f3;strokeColor=#c94f6d;fontColor=#5a2030;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=15;" parent="1" vertex="1">
+                        <mxGeometry x="1540" width="220" height="120" as="geometry"/>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="HTTPS publish" mermaidId="e:sources-&gt;server#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" mermaidBaseValue="HTTPS publish" id="7">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="2" target="3" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="NDJSON Stream&lt;div&gt;or&lt;/div&gt;&lt;div&gt;Poll&lt;/div&gt;" mermaidId="e:server-&gt;plugin#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" mermaidBaseValue="NDJSON Stream or Poll" id="8">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="3" target="4" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="Validate&lt;div&gt;Route&lt;/div&gt;&lt;div&gt;Write&lt;/div&gt;" mermaidId="e:plugin-&gt;markdown#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" mermaidBaseValue="Validate, route, write" id="9">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="4" target="5" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+                <UserObject label="Watch&lt;div&gt;Consume&lt;/div&gt;" mermaidId="e:markdown-&gt;workers#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" mermaidBaseValue="Watch or consume" id="10">
+                    <mxCell style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=15;labelBackgroundColor=none;fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="5" target="6" edge="1">
+                        <mxGeometry relative="1" as="geometry">
+                            <Array as="points"/>
+                        </mxGeometry>
+                    </mxCell>
+                </UserObject>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
