@@ -1,0 +1,7 @@
+{"event":"open","time":1785297600,"topic":"alpha"}
+{"event":"keepalive","time":1785297645,"topic":"alpha"}
+{"event":"message","id":"AbCd123456","time":1785297601,"expires":1785340801,"topic":"alpha","message":"hello","title":"title","tags":["one"],"priority":4,"content_type":"text/markdown","future_field":true}
+{"event":"message_delete","id":"AbCd123456","time":1785297602,"topic":"alpha","sequence_id":"sequence"}
+{"event":"message_clear","time":1785297603,"topic":"alpha","sequence_id":"sequence"}
+{"event":"poll_request","time":1785297604,"topic":"alpha"}
+{"event":"future_event","time":1785297605,"topic":"alpha","new_data":{"ok":true}}
