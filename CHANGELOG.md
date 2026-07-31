@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.1.5
+
+- Reworked the English and Simplified Chinese README content for a clearer overview, configuration guide, acceptance matrix, security limits, and project provenance.
+- Updated the bilingual six-stage message-to-knowledge workflow diagrams, including attached parallel flow arrows and synchronized layout and labels.
+- Replaced embedded double-extension workflow images with standard single-extension PNG assets exported with consistent padding.
+
 ## 0.1.4
 
 - Corrected the declarative rule-list width on Obsidian 1.13.4 and removed the redundant priority-arrow hint.

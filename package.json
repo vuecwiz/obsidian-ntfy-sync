@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ntfy-sync",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Receive ntfy messages and write deterministic, recoverable Vault effects.",
   "private": true,
   "main": "main.js",
