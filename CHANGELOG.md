@@ -2,12 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.1.4
+
+- Corrected the declarative rule-list width on Obsidian 1.13.4 and removed the redundant priority-arrow hint.
+
 ## 0.1.3
 
 - Added searchable declarative setting definitions for Obsidian 1.13 and later while retaining the imperative settings fallback for the declared minimum version, Obsidian 1.12.7.
 - Kept dynamic authentication, result publishing, rule cards, localization, validation, and reconnect side effects consistent across both settings implementations.
 - Updated the Obsidian API development dependency to 1.13.1 and added unit coverage for dynamic search metadata and secret exclusion.
-- Corrected the declarative rule-list width on Obsidian 1.13.4 and removed the redundant priority-arrow hint.
 
 ## 0.1.2
 

@@ -16,7 +16,7 @@ Desktop-only Obsidian plugin that receives ntfy messages, persists them before p
 
 The fifth stage is independent downstream automation: the plugin writes Markdown queues but does not execute clipping workers itself.
 
-## v0.1.3 capabilities
+## v0.1.4 capabilities
 
 - Native NDJSON stream, periodic poll, overlap replay, reconnect backoff, and automatic stream-to-poll fallback.
 - Multiple connection groups in the core model; Basic/Bearer read auth and separate result auth.

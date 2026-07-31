@@ -350,7 +350,7 @@ try {
   const report = {
     schema: "obsidian.ntfy-sync.e2e.v1",
     runId,
-    pluginVersion: "0.1.3",
+    pluginVersion: "0.1.4",
     vault: vaultName,
     checks,
     evidence: { attachmentSha256: expectedAttachmentSha256 },
