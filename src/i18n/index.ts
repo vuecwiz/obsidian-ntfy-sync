@@ -44,8 +44,7 @@ const EN = {
   "settings.validateReconnect": "Validate and reconnect",
   "settings.apply": "Apply",
   "settings.rules": "Message distribution rules",
-  "settings.rulesDesc":
-    "Rules are checked from top to bottom; the first enabled match wins. Use the arrows to set priority.",
+  "settings.rulesDesc": "Rules are checked from top to bottom; the first enabled match wins.",
   "settings.addRule": "Add rule",
   "settings.noRules":
     "No rules configured. Incoming messages will not be written until a rule is added.",
@@ -256,7 +255,7 @@ const ZH_CN: Record<TranslationKey, string> = {
   "settings.validateReconnect": "校验并重新连接",
   "settings.apply": "应用",
   "settings.rules": "消息分发规则",
-  "settings.rulesDesc": "规则从上到下依次检查，首个启用且匹配的规则生效；使用箭头调整优先级。",
+  "settings.rulesDesc": "规则从上到下依次检查，首个启用且匹配的规则生效。",
   "settings.addRule": "添加规则",
   "settings.noRules": "尚未配置规则。添加规则前，收到的消息不会写入笔记。",
   "settings.notePath": "笔记路径：{path}",

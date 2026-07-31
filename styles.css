@@ -170,6 +170,10 @@
   margin-inline: var(--size-4-4);
 }
 
+.ntfy-sync-rule-list.setting-group {
+  width: auto;
+}
+
 .ntfy-sync-rule-card {
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
