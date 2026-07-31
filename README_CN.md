@@ -2,21 +2,22 @@
 
 [English](README.md) | [简体中文](README_CN.md)
 
-仅支持桌面端的 Obsidian 插件：接收 ntfy 消息，在处理前持久化，以确定性的 first-match 规则完成路由，并以幂等方式写入 Vault。
+Ntfy Sync 将桌面端 Obsidian 连接到用户配置的 ntfy 服务器。移动应用、浏览器扩展、脚本及其他 ntfy 客户端发布的消息，可通过流式订阅或轮询接收，再依据有序的首条匹配规则路由为 Markdown 笔记。规则可匹配 Topic、标题、消息正文、标签、优先级、URL 和附件元数据；可配置模板则用于控制目标笔记、写入内容、插入模式及附件路径。
+
+插件会在处理前持久化已接收的消息，并通过幂等标记避免重连或历史回放造成重复写入。它支持经过身份验证的公共或自托管 ntfy 服务器、受保护的同源附件下载、持久化恢复、死信重试、脱敏诊断，以及将处理结果可选发布到独立的 ntfy Topic。Ntfy Sync 仅支持桌面端 Obsidian。
 
 ## 消息处理流程
 
-![Ntfy Sync 端到端消息处理流程](docs/assets/ntfy-sync-workflow-cn.drawio.png)
+![Ntfy Sync 端到端消息处理流程](docs/assets/ntfy-sync-workflow-cn.png)
 
-1. **消息源** — 手机 App、浏览器 ntfy 扩展和自动化脚本通过 HTTPS 发布消息。
-2. **ntfy.sh 服务器** — 接收 topic 发布，并提供订阅、缓存和回放。
+1. **消息来源** — 移动端、桌面端和 Web 客户端，以及浏览器扩展、CLI、HTTP API、Webhook 和自动化系统通过 HTTPS 发布消息。
+2. **ntfy.sh 服务器** — 提供 Topic 发布与订阅、消息缓存和历史回放。
 3. **Ntfy Sync 插件** — 通过 NDJSON Stream 或 Poll 订阅消息，持久化已接收的数据，并按首条匹配规则确定路由。
-4. **Markdown 队列** — 在 Obsidian Vault 中接收分类后的笔记和附件，并包含幂等标记。
-5. **可选剪藏 Worker** — 监听或消费队列中的链接，拉取远程内容并创建或补全剪藏笔记。
+4. **Markdown 队列** — 在 Obsidian Vault 中接收路由后的笔记和附件，并写入幂等标记以避免重复处理。
+5. **可选剪藏 Worker** — 监听或消费队列中的链接，拉取远程正文与媒体，并创建或补全剪藏笔记。
+6. **Obsidian 知识库** — 通过双向链接和标签组织 Markdown 笔记与本地附件，便于检索、关联和长期沉淀。
 
-第五阶段属于独立的下游自动化：插件负责写入 Markdown 队列，但不会直接执行剪藏 Worker。
-
-## v0.1.4 功能
+## 功能特性
 
 - 原生 NDJSON stream、定时 poll、重叠回放、重连退避，以及 stream 自动降级到 poll。
 - 核心模型支持多连接组；支持 Basic/Bearer 读取认证及独立的结果发布认证。
@@ -30,51 +31,16 @@
 - 插件界面完整支持 English 与简体中文；默认跟随 Obsidian，也可显式选择语言并在 reload 后保持。
 - 在 Obsidian 1.13 及以上版本中支持配置搜索，并为 Obsidian 1.12.7 保留相同的设置界面。
 
-## 环境要求与构建
-
-- 桌面端 Obsidian 1.12.7 或更高版本。
-- 开发环境 Node.js 22 或更高版本（`.nvmrc` 使用 Node 22）。
-
-```sh
-npm ci
-npm run verify
-```
-
-可安装文件为 `main.js`、`manifest.json` 和 `styles.css`。安装到隔离测试 Vault：
-
-```sh
-npm run build
-npm run install:test-vault
-```
-
-将 `OBSIDIAN_NTFY_TEST_VAULT` 设置为目录名中包含 `test` 的隔离 Vault；`install:test-vault` 会拒绝其他目标。只有完成下述部署检查后，才应手工安装到生产 Vault。
-
-## 从 Release 安装
-
-从对应的 [GitHub Release](https://github.com/vuecwiz/obsidian-ntfy-sync/releases) 下载 `ntfy-sync-VERSION.zip`，根据随附的 `.sha256` 文件校验后，将其解压到 `<Vault>/.obsidian/plugins/ntfy-sync/`。该目录下应直接包含 `main.js`、`manifest.json` 和 `styles.css`。重启 Obsidian 或 reload 第三方插件，然后启用 **Ntfy Sync**。
-
-公开插件 ID 为 `ntfy-sync`。如果曾将较早的、尚未提交社区目录的 `0.1.0` 手工安装到 `.obsidian/plugins/obsidian-ntfy-sync`，请先禁用插件并关闭 Obsidian，在不删除 `data.json` 和状态文件的前提下将该目录改名为 `ntfy-sync`，重新打开 Obsidian 后再次启用 **Ntfy Sync**。
-
-Release tag 必须与 `package.json`、`manifest.json` 和 `versions.json` 中的版本完全一致。推送版本 tag 后，GitHub 会自动执行完整确定性质量门禁、构建 ZIP、校验 ZIP 只有三个允许文件、上传 Actions artifact，并把 ZIP、校验文件以及三个独立插件文件附加到 GitHub Release。也可以手工启动 Release workflow，只生成临时 Actions artifact 而不创建 GitHub Release。
-
 ## 初始配置
 
 如果尚不熟悉 ntfy，可先阅读官方 [ntfy 快速入门文档](https://docs.ntfy.sh/#getting-started)，其中介绍了订阅 topic 和发送第一条消息的方法。
 
 1. 分别创建不可猜测的 input topic 和 result topic。使用自托管 ntfy 时，分别授予满足读写方向的最小 ACL。
 2. 打开 **设置 → 第三方插件 → Ntfy Sync**，配置服务器、input topics、transport mode 和读取认证。每个 topic 必须由 1–64 个 ASCII 字母、数字、下划线或短横线组成，与 ntfy 官方格式一致。只有显式的 loopback 测试才允许 HTTP。
-3. 在页面底部、**应用**按钮的上一行，通过 **插件语言** 选择 **跟随 Obsidian**、**English** 或 **简体中文**。默认值跟随 Obsidian 当前界面语言；显式选择会同步切换 Ntfy Sync 设置、规则编辑器、状态详情、通知和命令名称。如需让已经注册的命令名称立即更新，请在切换后 reload 插件。
-4. 可选启用结果发布，使用独立 topic 和写入 credential。默认使用 minimal 隐私模式；除非显式关闭，否则 result 会启用缓存。选择 Basic 或 Bearer 认证时，Vault sync 存储风险提示直接显示在 Password 或 Token 设置项内部，使用与 Topics 的 “Comma-separated…” 相同的原生 description 样式；无认证连接不显示 credential 提示。
-5. 检查 **Message distribution rules**。规则自上而下匹配；使用箭头调整优先级，或通过标题右侧的 **Add rule** / 编辑配置结构化条件、目标笔记、模板、插入模式、heading 和附件路径。无效草稿不会保存。
-6. 只在选定 writer 设备上开启接收。`writerDeviceId` 不匹配时保持 monitor-only，不产生 Vault 写入。
-
-首版设置界面只编辑一个 primary connection；持久化 schema 和运行时支持多个 connection，完整多连接界面暂缓实现。
+3. 可将处理结果发布到独立 Topic，并使用单独的写入凭据；默认启用 minimal 隐私模式和结果缓存。
+4. 检查 **Message distribution rules**。规则自上而下匹配；使用箭头调整优先级，或通过标题右侧的 **Add rule** / 编辑配置结构化条件、目标笔记、模板、插入模式、heading 和附件路径。
 
 ## 配置界面截图
-
-以下截图使用经过脱敏的示例 topic 和路径。
-
-以下文档截图使用脱敏示例数据和人工复核通过的 `1440×900` 中文界面。
 
 ### 通用配置
 
@@ -90,7 +56,10 @@ Release tag 必须与 `package.json`、`manifest.json` 和 `versions.json` 中�
 
 ### 规则配置
 
-规则按列表从上到下检查。禁用规则会被跳过；第一个满足全部条件的启用规则生效，随后停止匹配。同一规则内的多个条件是 **AND（且）** 关系，不会隐式执行 OR（或）；需要 OR 时，应创建多条 action 相同的规则。没有条件的规则匹配所有消息，因此 catch-all 规则通常应放在最后。
+- 规则按列表从上到下检查。
+- 禁用规则会被跳过；第一个满足全部条件的启用规则生效，随后停止匹配。
+- 同一规则内的多个条件是 **AND（且）** 关系。需要 OR（或）时，应创建多条 action 相同的规则。
+- 没有条件的规则匹配所有消息，因此 catch-all 规则通常应放在最后。
 
 | 配置项 | 说明 |
 | --- | --- |
@@ -127,8 +96,6 @@ Release tag 必须与 `package.json`、`manifest.json` 和 `versions.json` 中�
 - `starts with` 是字面前缀匹配；Attachment MIME type 可用 `image/` 匹配整个类型族。
 - `is at least` 是数值 `>=` 比较。
 - `host equals` 只匹配规范化后的完整 hostname；`host or subdomain of` 还接受其子域，并保持域名边界。
-
-点击或聚焦 **Attachment MIME type** 搜索框即可浏览预设。`equals` 下包含 `image/png`、`application/pdf`、`text/markdown`、`audio/mpeg`、`video/mp4` 等常见完整类型；`starts with` 下还会提供 `image/`、`audio/`、`video/`、`text/`、`application/` 等类型族。输入文字会筛选列表；点击右侧清空按钮会清空值并立即重新打开完整预设，输入框已处于激活状态时再次点击也会重新打开建议。未列出的 MIME type 仍可手工输入。预设统一使用小写，匹配继续沿用规则引擎区分大小写的语义。
 
 #### 路径与内容模板变量
 
@@ -193,20 +160,42 @@ Note path、Attachment path 和 Content template 支持下列变量。日期时�
 
 回滚时先禁用 **Ntfy Sync**，确认状态变为 off。禁用会终止 stream 和 poll timer，但不会删除已经写入的笔记或附件。只有 ntfy 输入停止后，才能为对应路由启用其他 ingress；除非下游流程本身具备幂等性，否则禁止两个 transport 同时写入同一队列。
 
-## 自动化验收
+## 环境要求与构建
+
+- 桌面端 Obsidian 1.12.7 或更高版本。
+- 开发环境 Node.js 22 或更高版本（`.nvmrc` 使用 Node 22）。
 
 ```sh
+npm ci
 npm run verify
-npm run test:ui
-npm run test:acceptance
 ```
 
-`verify` 执行格式、lint、typecheck、unit/contract/integration、强制覆盖率、秘密扫描、构建和可复现 bundle 哈希。`test:ui` 将构建安装到显式选择的隔离测试 Vault，通过稳定 DOM selector 操作设置页规则编辑器，验证持久化和 reload，并恢复原设置。`test:acceptance` 在 UI gate 之外执行 stream 与 poll 场景，覆盖随机 loopback topic、reload/reconnect、附件 SHA-256、重复 marker、result 隐私、错误基线、回滚和清理断言。报告写入 gitignored 的 `.artifacts/`。
+可安装文件为 `main.js`、`manifest.json` 和 `styles.css`。安装到隔离测试 Vault：
+
+```sh
+npm run build
+npm run install:test-vault
+```
+
+将 `OBSIDIAN_NTFY_TEST_VAULT` 设置为目录名中包含 `test` 的隔离 Vault；`install:test-vault` 会拒绝其他目标。只有完成下述部署检查后，才应手工安装到生产 Vault。
+
+## 自动化验收
+
+| 命令 | 验收范围 |
+| --- | --- |
+| `npm run verify` | 格式、lint、类型检查、单元/契约/集成测试、覆盖率、敏感信息扫描、构建、可复现性及发布包检查。 |
+| `npm run test:ui` | 将构建安装到隔离测试 Vault，操作规则编辑器，验证持久化与重新加载，并恢复原设置。 |
+| `npm run test:acceptance` | 执行 UI gate 及 stream、poll 场景，覆盖重连、附件、重复写入防护、结果隐私、回滚和清理。 |
+
+验收报告写入已忽略的 `.artifacts/` 目录。
 
 ## 安全与已知限制
 
-Credential 存储在 Obsidian `data.json` 中，本地文件系统权限和 Vault sync 权限是安全边界。运行状态只通过 Obsidian Vault adapter 访问插件目录，不再直接使用 Node.js 文件系统。规则编辑器仅在生成笔记和附件路径建议时枚举 Vault 文件路径，不会为路径建议读取文件内容。插件通过 Vault marker 提供 effective-once，而不是分布式 exactly-once。它无法恢复早于 ntfy server cache 的消息，不执行 ntfy action/click，不把远端 delete/clear 映射为 Vault 删除，也不支持移动端后台运行。生产切换前仍需验证 OS sleep/wake、长时间 soak，以及目标部署的 TLS/CORS/proxy/cache 行为。参见 [SECURITY.md](SECURITY.md)。
+- 凭据存储在 Obsidian `data.json` 中，本地文件系统和 Vault Sync 权限构成安全边界。
+- 幂等标记可实现 Vault 的 effective-once 写入，但不保证分布式 exactly-once；早于 ntfy 服务器缓存的消息无法恢复。
+- 插件不执行 ntfy action，不同步远端 delete/clear 事件，也不支持移动端后台运行。
+- 生产使用前应验证系统休眠/唤醒，以及部署环境的 TLS、CORS、代理和缓存配置。详见 [SECURITY.md](SECURITY.md)。
 
 ## 许可证与来源
 
-项目采用 `AGPL-3.0-only`，与 Obsidian Telegram Sync 相同。插件为原创实现：只读检查了 Telegram Sync 的行为，未复制或改造其实现源码。
+项目采用 `AGPL-3.0-only` 许可证，受 Obsidian Telegram Sync 启发，并独立实现，未复制或改造其源码。

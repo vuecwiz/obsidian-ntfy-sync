@@ -2,21 +2,22 @@
 
 [English](README.md) | [简体中文](README_CN.md)
 
-Desktop-only Obsidian plugin that receives ntfy messages, persists them before processing, routes them with deterministic first-match rules, and writes idempotent Vault effects.
+Ntfy Sync connects Obsidian desktop to a user-configured ntfy server. Messages published from mobile apps, browser extensions, scripts, or other ntfy clients are received through streaming or polling, then routed into Markdown notes using ordered, first-match rules. Rules can match topics, titles, message content, tags, priority, URLs, and attachment metadata, while configurable templates control the destination note, inserted content, insertion mode, and attachment path.
+
+Accepted messages are persisted before processing, and idempotency markers prevent duplicate Vault writes during reconnects or replay. The plugin supports authenticated public and self-hosted ntfy servers, guarded same-origin attachment downloads, durable recovery, dead-letter retries, redacted diagnostics, and optional publication of processing results to a separate ntfy topic. Ntfy Sync is desktop-only.
 
 ## Message flow
 
-![Ntfy Sync end-to-end message flow](docs/assets/ntfy-sync-workflow.drawio.png)
+![Ntfy Sync end-to-end message flow](docs/assets/ntfy-sync-workflow.png)
 
-1. **Message sources** — mobile apps, the ntfy browser extension, and automation scripts publish messages over HTTPS.
-2. **ntfy.sh server** — accepts topic publications and provides subscription, cache, and replay.
-3. **Ntfy Sync** — subscribes by NDJSON stream or poll, persists accepted messages, and applies deterministic first-match routing.
+1. **Message sources** — mobile, desktop, and web clients; browser, CLI, and API integrations; webhooks; and automation publish messages over HTTPS.
+2. **ntfy.sh server** — provides topic publish/subscribe, message caching, and replay.
+3. **Ntfy Sync plugin** — subscribes by NDJSON stream or poll, persists accepted messages, and applies deterministic first-match rules.
 4. **Markdown queues** — receive routed notes and attachments with idempotency markers in the Obsidian Vault.
-5. **Optional clipping workers** — watch or consume queued links, fetch remote content, and create or enrich clipped notes.
+5. **Clipping workers** — consume queued links, fetch remote text and media, and create or enrich clipped notes.
+6. **Knowledge base** — retains Markdown notes and local files, organized through backlinks and tags for searchable, reusable, durable knowledge.
 
-The fifth stage is independent downstream automation: the plugin writes Markdown queues but does not execute clipping workers itself.
-
-## v0.1.4 capabilities
+## Features
 
 - Native NDJSON stream, periodic poll, overlap replay, reconnect backoff, and automatic stream-to-poll fallback.
 - Multiple connection groups in the core model; Basic/Bearer read auth and separate result auth.
@@ -30,51 +31,16 @@ The fifth stage is independent downstream automation: the plugin writes Markdown
 - English and Simplified Chinese plugin interfaces, with **Follow Obsidian** as the default and explicit language overrides that persist across reloads.
 - Searchable settings on Obsidian 1.13 and later, with the same settings UI retained for Obsidian 1.12.7.
 
-## Requirements and build
-
-- Obsidian 1.12.7 or newer on desktop.
-- Node.js 22 or newer for development (`.nvmrc` and CI use Node 22).
-
-```sh
-npm ci
-npm run verify
-```
-
-The installable files are `main.js`, `manifest.json`, and `styles.css`. For the isolated test Vault:
-
-```sh
-npm run build
-npm run install:test-vault
-```
-
-Set `OBSIDIAN_NTFY_TEST_VAULT` to an isolated Vault whose directory name contains `test`. `install:test-vault` rejects any other target. Manual production installation should happen only after the deployment checks below.
-
-## Installation from a release
-
-Download `ntfy-sync-VERSION.zip` from the matching [GitHub release](https://github.com/vuecwiz/obsidian-ntfy-sync/releases), verify it against the accompanying `.sha256` file, and extract it into `<Vault>/.obsidian/plugins/ntfy-sync/`. The directory must directly contain `main.js`, `manifest.json`, and `styles.css`. Restart Obsidian or reload community plugins, then enable **Ntfy Sync**.
-
-The public plugin ID is `ntfy-sync`. If you manually installed the earlier pre-directory `0.1.0` package under `.obsidian/plugins/obsidian-ntfy-sync`, disable it, close Obsidian, rename that directory to `ntfy-sync` without deleting `data.json` or state files, reopen Obsidian, and enable **Ntfy Sync** again.
-
-Release tags must exactly match the version shared by `package.json`, `manifest.json`, and `versions.json`. A version tag automatically runs the full deterministic quality gate, builds the ZIP, verifies its three-entry allowlist, uploads the ZIP as an Actions artifact, and attaches the ZIP, checksum, and individual plugin files to the GitHub release. The Release workflow can also be started manually to produce a temporary Actions artifact without creating a GitHub release.
-
 ## Initial configuration
 
 If ntfy is new to you, start with the official [ntfy Getting started guide](https://docs.ntfy.sh/#getting-started), which covers subscribing to a topic and sending the first message.
 
 1. Create separate, non-guessable input and result topics. On self-hosted ntfy, use the smallest read/write ACLs that satisfy each direction.
 2. Open **Settings → Community plugins → Ntfy Sync** and configure the server, input topics, transport mode, and read authentication. Each topic must use 1–64 ASCII letters, numbers, underscores, or dashes, matching the official ntfy topic format. HTTP is accepted only for explicit loopback testing.
-3. Near the bottom of the page, immediately above **Apply**, choose **Language → Follow Obsidian**, **English**, or **简体中文**. The default follows Obsidian's current interface language; an explicit choice changes Ntfy Sync settings, rule editors, status details, notices, and command names. Reload the plugin after changing language if you need already registered command names to update immediately.
-4. Optionally enable result publishing with a distinct topic and write credential. Minimal privacy is the default; result caching is on unless explicitly disabled. When Basic or Bearer auth is selected, the Vault-sync storage warning is the native description inside the Password or Token setting, matching the Topics description style. No warning is shown for unauthenticated connections.
-5. Review **Message distribution rules**. The list is evaluated top-to-bottom; use the arrows to change priority, or use **Add rule** on the right side of the section heading / edit to configure structured conditions, target note, template, insertion mode, heading, and attachment path. Invalid drafts are not saved.
-6. Enable receiving only on the selected writer device. A mismatched `writerDeviceId` remains monitor-only and creates no Vault effects.
-
-The first settings UI edits one primary connection. The persisted schema and runtime support multiple connections; richer multi-connection UI is deferred.
+3. Optionally publish processing results to a separate topic with its own write credential. Minimal privacy and result caching are enabled by default.
+4. Review **Message distribution rules**. The list is evaluated top-to-bottom; use the arrows to change priority, or use **Add rule** on the right side of the section heading / edit to configure structured conditions, target note, template, insertion mode, heading, and attachment path.
 
 ## Configuration screenshots
-
-The screenshots below use sanitized example topics and paths.
-
-The documentation screenshots use sanitized example data and the manually reviewed `1440×900` English interface.
 
 ### General settings
 
@@ -90,7 +56,10 @@ Rules are evaluated from top to bottom. Each card provides quick enable/disable,
 
 ### Rule configuration
 
-Rules are evaluated from top to bottom. Disabled rules are skipped, and processing stops at the first enabled rule whose conditions all match. Conditions within one rule use **AND** logic; there is no implicit OR. To express OR, create multiple rules with the same action. A rule with no conditions matches every message, so a catch-all rule should normally be last.
+- Rules are evaluated from top to bottom.
+- Disabled rules are skipped; the first enabled rule whose conditions all match takes effect, and matching then stops.
+- Conditions within a rule use **AND** logic. To express OR, create multiple rules with the same action.
+- A rule with no conditions matches every message, so a catch-all rule should normally be last.
 
 | Setting | Description |
 | --- | --- |
@@ -127,8 +96,6 @@ Operator meanings vary slightly by field:
 - `starts with` is a literal prefix check. For Attachment MIME type, a value such as `image/` matches the whole MIME family.
 - `is at least` is a numeric `>=` comparison.
 - `host equals` matches one normalized hostname exactly; `host or subdomain of` additionally accepts labels below that hostname while preserving the domain boundary.
-
-Click or focus the **Attachment MIME type** search field to browse presets. With `equals`, the list includes common exact values such as `image/png`, `application/pdf`, `text/markdown`, `audio/mpeg`, and `video/mp4`. With `starts with`, it additionally offers family prefixes such as `image/`, `audio/`, `video/`, `text/`, and `application/`. Typing filters the list. The right-side button clears the value and immediately reopens the full preset list; clicking an already focused input also reopens its suggestions. An unlisted MIME type can still be entered manually. Presets are lowercase; matching retains the rule engine's case-sensitive semantics.
 
 #### Path and content template variables
 
@@ -193,20 +160,42 @@ Runtime state is stored beside the plugin as `state-v1.json`, with a checksum an
 
 To roll back, disable **Ntfy Sync** first and confirm its status is off. Disabling aborts streams and poll timers but does not delete notes or attachments already written. Only after ntfy input has stopped should another ingress be enabled for the corresponding route; never let two transports write the same queue unless the downstream workflow is independently idempotent.
 
-## Automated acceptance
+## Requirements and build
+
+- Obsidian 1.12.7 or newer on desktop.
+- Node.js 22 or newer for development (`.nvmrc` and CI use Node 22).
 
 ```sh
+npm ci
 npm run verify
-npm run test:ui
-npm run test:acceptance
 ```
 
-`verify` runs formatting, lint, typecheck, unit/contract/integration tests, enforced coverage, secret scan, build, and reproducible bundle hashing. `test:ui` installs the build into the explicitly selected isolated test Vault, drives the settings rule editor through stable DOM selectors, verifies persistence and reload, and restores the original settings. `test:acceptance` includes that UI gate plus stream and poll scenarios with randomized loopback topics, reload/reconnect, attachment SHA-256, duplicate-marker, result privacy, error-baseline, rollback, and cleanup assertions. Reports are written under ignored `.artifacts/` paths.
+The installable files are `main.js`, `manifest.json`, and `styles.css`. For the isolated test Vault:
+
+```sh
+npm run build
+npm run install:test-vault
+```
+
+Set `OBSIDIAN_NTFY_TEST_VAULT` to an isolated Vault whose directory name contains `test`. `install:test-vault` rejects any other target. Manual production installation should happen only after the deployment checks below.
+
+## Automated acceptance
+
+| Command | Coverage |
+| --- | --- |
+| `npm run verify` | Formatting, lint, type checking, unit/contract/integration tests, coverage, secret scanning, build, reproducibility, and release-package checks. |
+| `npm run test:ui` | Installs the build into an isolated test Vault, exercises the rule editor, verifies persistence and reload, and restores the original settings. |
+| `npm run test:acceptance` | Runs the UI gate plus stream and poll scenarios covering reconnects, attachments, duplicate prevention, result privacy, rollback, and cleanup. |
+
+Acceptance reports are written under the ignored `.artifacts/` directory.
 
 ## Security and known limits
 
-Credentials are stored in Obsidian `data.json`; local filesystem and Vault-sync permissions are the security boundary. Runtime state is accessed through Obsidian's Vault adapter inside the plugin directory, without direct Node.js filesystem access. The rule editor enumerates Vault file paths only while producing note/attachment path suggestions and does not read those files for suggestions. The plugin provides effective-once Vault markers, not distributed exactly-once delivery. It cannot recover messages older than the ntfy server cache, does not execute ntfy actions/clicks, does not mirror remote delete/clear events, and has no mobile background support. Actual OS sleep/wake, long-duration soak, and each deployment's TLS/CORS/proxy/cache behavior must be validated before production cutover. See [SECURITY.md](SECURITY.md).
+- Credentials are stored in Obsidian `data.json`; local filesystem and Vault Sync permissions are the security boundary.
+- Idempotency markers provide effective-once Vault writes, not distributed exactly-once delivery. Messages older than the ntfy server cache cannot be recovered.
+- The plugin does not execute ntfy actions, mirror remote delete/clear events, or support mobile background operation.
+- Validate sleep/wake behavior and deployment-specific TLS, CORS, proxy, and cache settings before production use. See [SECURITY.md](SECURITY.md).
 
 ## License and provenance
 
-AGPL-3.0-only, matching Obsidian Telegram Sync. The implementation is original: Telegram Sync was inspected read-only for behavior, and no implementation source file was copied or adapted.
+Licensed under `AGPL-3.0-only`. Inspired by Obsidian Telegram Sync and independently implemented without copying or adapting its source code.
