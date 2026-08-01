@@ -148,7 +148,9 @@ async function send(
   body: string | ArrayBuffer,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(url, {
+  // requestUrl cannot cancel an in-flight publish. The renderer request is intentionally used so
+  // closing the composer or unloading the plugin aborts the only send attempt.
+  const response = await window.fetch(url, {
     method,
     headers,
     body,

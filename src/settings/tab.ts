@@ -434,6 +434,9 @@ export class NtfySyncSettingTab extends PluginSettingTab {
     setting.setHeading().setClass("ntfy-sync-title-heading");
     setting.settingEl.dataset.testid = "ntfy-settings-heading";
     this.decorateHeadingWrapper(setting, "ntfy-sync-title-heading-items");
+    setting.settingEl
+      .closest<HTMLElement>(".setting-group")
+      ?.classList.add("ntfy-sync-title-heading-group");
   }
 
   private configurePrimaryConnectionHeading(setting: Setting): void {
