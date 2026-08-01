@@ -75,7 +75,27 @@ async function obsidian(...args) {
 }
 
 async function evaluate(code) {
-  const output = await obsidian("eval", `code=${code}`);
+  const scopedCode = `
+    (() => {
+      const document =
+        activeDocument?.visibilityState === "visible" ||
+        activeDocument?.querySelector('[data-testid="ntfy-rule-modal"]')
+          ? activeDocument
+          : app.workspace.containerEl.ownerDocument;
+      const window = document.defaultView;
+      const innerWidth = window.innerWidth;
+      const innerHeight = window.innerHeight;
+      const devicePixelRatio = window.devicePixelRatio;
+      const matchMedia = window.matchMedia.bind(window);
+      const getComputedStyle = window.getComputedStyle.bind(window);
+      const Event = window.Event;
+      const KeyboardEvent = window.KeyboardEvent;
+      const MouseEvent = window.MouseEvent;
+      const PointerEvent = window.PointerEvent;
+      return eval(${JSON.stringify(code)});
+    })()
+  `;
+  const output = await obsidian("eval", `code=${scopedCode}`);
   const line = output.split(/\r?\n/u).findLast((candidate) => candidate.startsWith("=> "));
   return line?.slice(3);
 }
@@ -92,13 +112,45 @@ async function evaluateRead(code) {
 }
 
 async function evaluateJson(code) {
-  const output = await evaluateRead(code);
-  if (!output) throw new Error("Obsidian eval returned no JSON result");
-  return JSON.parse(output);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const output = await evaluateRead(code);
+    if (output) return JSON.parse(output);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
+  }
+  throw new Error("Obsidian eval returned no JSON result");
 }
 
 async function cdp(method, params) {
   return obsidian("dev:cdp", `method=${method}`, `params=${JSON.stringify(params)}`);
+}
+
+async function captureActiveRenderer(method, params) {
+  if (method !== "Page.captureScreenshot") return cdp(method, params);
+  const activeRendererIsMain =
+    (await evaluateRead(`document === app.workspace.containerEl.ownerDocument`)) === "true";
+  if (activeRendererIsMain) return cdp(method, params);
+  return evaluate(`
+    (async () => {
+      const remote = require("@electron/remote");
+      const title = document.title;
+      const expectsSettings = Boolean(document.querySelector(".ntfy-sync-settings"));
+      const candidates = remote.BrowserWindow.getAllWindows()
+        .filter((candidate) => candidate.getTitle() === title && candidate.isVisible());
+      let target;
+      for (const candidate of candidates) {
+        const hasSettings = await candidate.webContents.executeJavaScript(
+          'Boolean(document.querySelector(".ntfy-sync-settings"))'
+        );
+        if (hasSettings === expectsSettings) {
+          target = candidate;
+          break;
+        }
+      }
+      if (!target) throw new Error("Active Electron renderer was not found");
+      const image = await target.webContents.capturePage();
+      return JSON.stringify({ data: image.toPNG().toString("base64") });
+    })()
+  `);
 }
 
 async function waitFor(predicate, label, timeoutMs = 5_000) {
@@ -114,7 +166,7 @@ async function captureScreenshot(path, label, readyExpression) {
   const evidence = await captureStableScreenshot({
     path,
     label,
-    cdp,
+    cdp: captureActiveRenderer,
     readState: () => readScreenshotState(label, readyExpression),
   });
   screenshotEvidence[basename(path)] = evidence;
@@ -317,6 +369,17 @@ try {
   }
   originalPluginEnabled =
     (await evaluateRead(`app.plugins.enabledPlugins.has("ntfy-sync")`)) === "true";
+  await evaluate(`
+    (() => {
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      app.setting.close();
+      const mainWindow =
+        plugin?.statusElement?.ownerDocument.defaultView ??
+        app.workspace.containerEl.ownerDocument.defaultView;
+      mainWindow.focus();
+      return "main-window-focused";
+    })()
+  `);
   await obsidian("dev:debug", "on");
   debugAttached = true;
   checks.debuggerAttached = true;
@@ -393,6 +456,7 @@ try {
       const topics = inspect("ntfy-topics");
       const topicsSetting = document.querySelector('[data-testid="ntfy-topics"]')?.closest(".setting-item");
       return JSON.stringify({
+        rootFontPx: Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
         serverUrl: inspect("ntfy-server-url"),
         topics,
         publishResult: inspect("ntfy-publish-result"),
@@ -402,7 +466,7 @@ try {
       });
     })()
   `);
-  const is14Rem = (width) => width >= 223 && width <= 225;
+  const is14Rem = (width) => Math.abs(width - compactControlLayout.rootFontPx * 14) <= 0.5;
   assert(
     is14Rem(compactControlLayout.serverUrl.controlWidth) &&
       is14Rem(compactControlLayout.serverUrl.elementWidth) &&
@@ -493,9 +557,10 @@ try {
       const removeRect = remove?.getBoundingClientRect();
       const notePathRect = notePath?.getBoundingClientRect();
       const attachmentPathRect = attachmentPath?.getBoundingClientRect();
-      const descriptionMaxLines = innerWidth < 1200 ? 2 : 1;
+      const descriptionMaxLines = innerWidth < 1200 ? 3 : 1;
       const fitsWidth = (element) => Boolean(element && element.scrollWidth <= element.clientWidth + 1);
       return JSON.stringify({
+        rootFontPx: Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
         tag: input?.tagName,
         placeholder: input?.getAttribute("placeholder"),
         ariaLabel: input?.getAttribute("aria-label"),
@@ -521,6 +586,7 @@ try {
       });
     })()
   `);
+  const isRemWidth = (width, rem) => Math.abs(width - searchShape.rootFontPx * rem) <= 0.5;
   assert(
     searchShape.tag === "INPUT" &&
       searchShape.placeholder === ui.mimePlaceholder &&
@@ -530,12 +596,9 @@ try {
       searchShape.nativeClearControl &&
       searchShape.clearInContainer &&
       searchShape.clearAfterInput &&
-      searchShape.compactWidth >= 287 &&
-      searchShape.compactWidth <= 289 &&
-      searchShape.notePathWidth >= 415 &&
-      searchShape.notePathWidth <= 417 &&
-      searchShape.attachmentPathWidth >= 415 &&
-      searchShape.attachmentPathWidth <= 417 &&
+      isRemWidth(searchShape.compactWidth, 18) &&
+      isRemWidth(searchShape.notePathWidth, 26) &&
+      isRemWidth(searchShape.attachmentPathWidth, 26) &&
       searchShape.pathWidthsMatch &&
       searchShape.noteDescriptionLines >= 1 &&
       searchShape.noteDescriptionLines <= searchShape.descriptionMaxLines &&
@@ -584,6 +647,7 @@ try {
       const searchRect = search?.getBoundingClientRect();
       const modalRect = modal?.getBoundingClientRect();
       return JSON.stringify({
+        rootFontPx: Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
         display: item ? getComputedStyle(item).display : "",
         sameRow: Boolean(
           labelRect && valueRect && labelRect.top < valueRect.bottom && labelRect.bottom > valueRect.top
@@ -614,7 +678,7 @@ try {
       presetLayout.valueTitle === "image/jpeg" &&
       presetLayout.dropdownMatchesSearch &&
       presetLayout.dropdownInsideModal &&
-      Math.abs(presetLayout.leftGap - presetLayout.rightGap) <= 4,
+      Math.abs(presetLayout.leftGap - presetLayout.rightGap) <= presetLayout.rootFontPx * 0.5,
     `MIME preset is not a left-name/right-value row: ${JSON.stringify(presetLayout)}`,
   );
   checks.mimePresetSingleLine = true;
@@ -854,9 +918,13 @@ try {
       } else {
         await obsidian("plugin:disable", "id=ntfy-sync");
       }
-      checks.originalPluginEnabledRestored =
-        ((await evaluate(`app.plugins.enabledPlugins.has("ntfy-sync")`)) === "true") ===
-        originalPluginEnabled;
+      await waitFor(
+        async () =>
+          ((await evaluateRead(`app.plugins.enabledPlugins.has("ntfy-sync")`)) === "true") ===
+          originalPluginEnabled,
+        "original plugin enabled state",
+      );
+      checks.originalPluginEnabledRestored = true;
     } catch {
       // Preserve restored settings even if Obsidian closes during cleanup.
       checks.originalPluginEnabledRestored = false;

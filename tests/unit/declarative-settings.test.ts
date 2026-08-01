@@ -31,6 +31,22 @@ function createTab() {
 }
 
 describe("declarative settings", () => {
+  it("keeps the title and first searchable setting in their scoped declarative groups", () => {
+    const { i18n, tab } = createTab();
+    const [title, firstSettingsGroup] = tab.getSettingDefinitions();
+
+    expect(title && "render" in title ? title.name : undefined).toBe(i18n.t("settings.title"));
+    expect(firstSettingsGroup).toMatchObject({ type: "group", heading: "" });
+    if (!firstSettingsGroup || !("type" in firstSettingsGroup) || !firstSettingsGroup.items) {
+      throw new Error("first declarative settings group is missing");
+    }
+    expect(firstSettingsGroup.items).toHaveLength(1);
+    const [enableReceiving] = firstSettingsGroup.items;
+    expect(enableReceiving && "name" in enableReceiving ? enableReceiving.name : undefined).toBe(
+      i18n.t("settings.enableReceiving"),
+    );
+  });
+
   it("indexes every top-level setting and the default rule without I/O", () => {
     const { i18n, settings, tab } = createTab();
     const definitions = tab.getSettingDefinitions();
@@ -49,9 +65,9 @@ describe("declarative settings", () => {
         i18n.t("settings.rules"),
         "Inbox",
         i18n.t("language.name"),
-        i18n.t("settings.validateReconnect"),
       ]),
     );
+    expect(names).not.toContain(i18n.t("settings.validateReconnect"));
     expect(
       definitions.every(
         (item) =>

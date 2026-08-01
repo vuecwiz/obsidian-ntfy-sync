@@ -8,7 +8,7 @@ function icon(glyph: string): string {
 
 const icons: Record<string, string> = {
   "ntfy-status-idle": icon(`<path d="m7.5 9 2 2-2 2M12 13h3.5"/>`),
-  "ntfy-status-off": icon(`<path d="M7 7l10 7M5 3l14 18"/>`),
+  "ntfy-status-off": icon(`<path d="m9 8 6 6M15 8l-6 6"/>`),
   "ntfy-status-monitor": icon(
     `<path d="M7 11s1.8-3 5-3 5 3 5 3-1.8 3-5 3-5-3-5-3Z"/><circle cx="12" cy="11" r="1.2"/>`,
   ),

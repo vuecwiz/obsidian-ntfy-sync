@@ -24,12 +24,17 @@ const generalScreenshots = [
   [
     "documentation-general-settings.png",
     chinesePlugin ? "通用设置" : "General settings",
-    "验证接收开关、服务器、Topics、连接模式和认证控件。",
+    "验证独立透明的插件标题、接收开关、主连接标题右侧 Publish test 与 Apply，以及连接和认证控件。",
+  ],
+  [
+    "publish-test-modal-layout.png",
+    chinesePlugin ? "发布测试消息弹窗" : "Publish test message modal",
+    "验证主题使用带搜索与清空按钮的单行输入框，预填并建议已配置输入主题，同时提供优先级、文本/图片 Vault 文件、内容、发布、取消和内联校验控件。",
   ],
   [
     "documentation-rule-list.png",
     chinesePlugin ? "消息分发规则" : "Message distribution rules",
-    "验证规则标题、Add rule 位置、规则名称与笔记路径同行以及快捷操作布局。",
+    "验证透明规则标题、Add rule 位置、列表无左右间隔、规则名称与笔记路径同行以及快捷操作布局。",
   ],
   [
     "credential-description.png",
@@ -49,12 +54,14 @@ const generalScreenshots = [
   [
     "edit-rule-modal-layout.png",
     chinesePlugin ? "编辑规则弹窗" : "Edit rule modal",
-    "验证已保存多条件规则重新打开后，中文文案、字段值和布局均保持。",
+    chinesePlugin
+      ? "验证已保存多条件规则重新打开后，中文文案、字段值和布局均保持。"
+      : "验证已保存多条件规则重新打开后，英文文案、字段值和布局均保持。",
   ],
   [
     "rules-settings.png",
     chinesePlugin ? "最终规则设置" : "Final rules settings",
-    "验证新增、重排、编辑、删除及 reload 后回到原始规则数量，并确认插件语言紧邻最终应用按钮的上一行。",
+    "验证新增、重排、编辑、删除及 reload 后回到原始规则数量，并确认底部只保留插件语言而没有重复 Apply。",
   ],
 ];
 const mimeScreenshots = [

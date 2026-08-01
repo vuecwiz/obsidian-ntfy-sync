@@ -19,10 +19,20 @@ describe("plugin interface localization", () => {
 
   it("translates labels, interpolation and MIME presets", () => {
     const zh = createI18n("zh-CN", "en");
+    const en = createI18n("en", "zh-CN");
     expect(zh.t("rule.condition", { number: 2 })).toBe("条件 2");
     expect(conditionFieldLabel(zh, "attachmentMime")).toBe("附件 MIME 类型");
     expect(conditionOperatorLabel(zh, "attachmentMime", "startsWith")).toBe("开头为");
     expect(mimePresetLabel(zh, "image/png", "PNG image")).toBe("PNG 图片");
+    expect(en.t("settings.rulesDesc")).toBe(
+      "Rules are checked from top to bottom; the first enabled match wins.",
+    );
+    expect(zh.t("settings.rulesDesc")).toBe("规则从上到下依次检查，首个启用且匹配的规则生效。");
+    expect(en.t("settings.publishTest")).toBe("Publish test");
+    expect(zh.t("publishTest.title")).toBe("发布测试消息");
+    expect(zh.t("publishTest.messageRequired")).toBe("请输入要发布的内容。");
+    expect(en.t("ribbon.openComposer")).toBe("Ntfy message composer");
+    expect(zh.t("ribbon.openComposer")).toBe("Ntfy消息发送器");
   });
 
   it("localizes rule summaries without translating user values", () => {

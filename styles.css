@@ -146,6 +146,24 @@
   border-color: var(--text-error);
 }
 
+.ntfy-sync-settings .setting-items.ntfy-sync-title-heading-items,
+.ntfy-sync-settings .setting-items.ntfy-sync-primary-heading-items,
+.ntfy-sync-settings .setting-items.ntfy-sync-rules-heading-items {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.ntfy-sync-settings .setting-items.ntfy-sync-title-heading-items {
+  padding-bottom: 0;
+}
+
+.ntfy-sync-settings
+  .setting-group:has(> .setting-items.ntfy-sync-title-heading-items)
+  + .setting-group {
+  margin-top: 0;
+}
+
 .ntfy-sync-settings .ntfy-sync-control-14rem .setting-item-control {
   flex: 0 0 14rem;
   max-width: 100%;
@@ -157,21 +175,364 @@
 }
 
 .ntfy-sync-settings textarea,
-.ntfy-sync-rule-modal textarea {
+.ntfy-sync-rule-modal textarea,
+.ntfy-sync-test-publish-modal textarea {
   min-height: 12rem;
   width: 100%;
   font-family: var(--font-monospace);
+}
+
+.ntfy-sync-test-publish-modal .modal-content {
+  max-width: 42rem;
+}
+
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-message {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-message .setting-item-control {
+  width: 100%;
+}
+
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-message textarea {
+  min-height: 9rem;
+}
+
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-topic-search,
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-file-search {
+  flex: 0 1 18rem;
+  width: min(18rem, 100%);
+}
+
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-topic-search input,
+.ntfy-sync-test-publish-modal .ntfy-sync-test-publish-file-search input {
+  width: 100%;
+}
+
+.ntfy-sync-test-publish-validation {
+  color: var(--text-error);
+  min-height: var(--line-height-normal);
+  margin: var(--size-4-2) 0;
+}
+
+.ntfy-sync-test-publish-footer .setting-item-control {
+  gap: var(--size-4-2);
+}
+
+.ntfy-sync-composer {
+  --ntfy-composer-inline-padding: var(--size-4-3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-leaf-content[data-type="ntfy-sync-message-composer"] > .ntfy-sync-composer {
+  padding: var(--size-4-2);
+}
+
+.ntfy-sync-composer-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--size-4-2);
+  justify-content: space-between;
+  padding-inline: var(--ntfy-composer-inline-padding);
+  padding-bottom: var(--size-4-4);
+  padding-top: var(--size-4-2);
+}
+
+.ntfy-sync-composer-heading-text {
+  min-width: 0;
+}
+
+.ntfy-sync-composer-title {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--size-4-1);
+}
+
+.ntfy-sync-composer-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ntfy-sync-composer-form > .setting-item {
+  align-items: stretch;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  padding-inline: var(--ntfy-composer-inline-padding);
+}
+
+.ntfy-sync-composer-form > .ntfy-sync-composer-inline {
+  align-items: center;
+  flex-direction: row;
+}
+
+.ntfy-sync-composer-inline .setting-item-info {
+  flex: 0 0 6.5rem;
+  min-width: 0;
+}
+
+.ntfy-sync-composer-inline .setting-item-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ntfy-sync-composer-form > .ntfy-sync-composer-destination,
+.ntfy-sync-composer-form > .ntfy-sync-composer-file-row {
+  gap: var(--size-4-1);
+  justify-content: flex-start;
+  padding-bottom: var(--size-4-1);
+  padding-top: var(--size-4-1);
+}
+
+.ntfy-sync-composer-destination .setting-item-info,
+.ntfy-sync-composer-file-row .setting-item-info {
+  flex-basis: 5rem;
+  margin-inline-end: 0;
+}
+
+.ntfy-sync-composer-destination .setting-item-control,
+.ntfy-sync-composer-file-row .setting-item-control {
+  margin-inline-start: 0;
+}
+
+.ntfy-sync-composer-form > .ntfy-sync-composer-compact-inline {
+  padding-bottom: var(--size-4-1);
+  padding-top: var(--size-4-1);
+}
+
+.ntfy-sync-composer-multi-select {
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.ntfy-sync-composer-multi-select > summary {
+  align-items: center;
+  background: var(--dropdown-background, var(--background-primary));
+  border: var(--input-border-width) solid var(--background-modifier-border);
+  border-radius: var(--input-radius);
+  box-shadow: var(--input-shadow);
+  color: var(--text-normal);
+  cursor: var(--cursor);
+  display: flex;
+  font-size: var(--font-ui-small);
+  height: var(--input-height);
+  justify-content: space-between;
+  list-style: none;
+  padding: 0 var(--size-4-3);
+  user-select: none;
+}
+
+.ntfy-sync-composer-multi-select > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ntfy-sync-composer-multi-select > summary::after {
+  color: var(--text-muted);
+  content: "⌄";
+  font-size: var(--font-ui-small);
+  margin-inline-start: var(--size-4-2);
+}
+
+.ntfy-sync-composer-multi-select[open] > summary {
+  border-color: var(--background-modifier-border-focus);
+}
+
+.ntfy-sync-composer-multi-select-list {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-s);
+  inset: auto;
+  left: var(--ntfy-multi-select-left);
+  margin: 0;
+  max-height: var(--ntfy-multi-select-max-height, 14rem);
+  overflow-y: auto;
+  padding: var(--size-2-2);
+  position: fixed;
+  top: var(--ntfy-multi-select-top);
+  width: var(--ntfy-multi-select-width);
+  z-index: var(--layer-menu, 1000);
+}
+
+.ntfy-sync-composer-multi-select-option {
+  align-items: center;
+  border-radius: var(--radius-s);
+  cursor: var(--cursor);
+  display: flex;
+  font-size: var(--font-ui-small);
+  gap: var(--size-4-2);
+  padding: var(--size-4-2);
+}
+
+.ntfy-sync-composer-multi-select-option:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ntfy-sync-composer .ntfy-sync-composer-multi-select-option input {
+  flex: 0 0 auto;
+  height: var(--checkbox-size, 16px);
+  margin: 0;
+  min-width: var(--checkbox-size, 16px);
+  width: var(--checkbox-size, 16px);
+}
+
+.ntfy-sync-composer-destination + .ntfy-sync-composer-destination {
+  border-top: 0;
+}
+
+.ntfy-sync-composer-destination .setting-item-control > *,
+.ntfy-sync-composer-file-row .setting-item-control > * {
+  flex: 1 1 auto;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.ntfy-sync-composer > .setting-item .setting-item-control,
+.ntfy-sync-composer-search,
+.ntfy-sync-composer input,
+.ntfy-sync-composer select,
+.ntfy-sync-composer textarea {
+  width: 100%;
+}
+
+.ntfy-sync-composer-message textarea {
+  font-family: var(--font-text);
+  min-height: 10rem;
+  resize: vertical;
+}
+
+.ntfy-sync-composer-message .setting-item-info {
+  align-items: center;
+  display: flex;
+  gap: var(--size-4-3);
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ntfy-sync-composer-markdown-control {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  flex: 0 1 auto;
+  font-size: var(--font-ui-small);
+  gap: var(--size-4-2);
+  text-align: end;
+}
+
+.ntfy-sync-composer-tags .setting-item-info {
+  align-items: center;
+  display: flex;
+  gap: var(--size-4-3);
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ntfy-sync-composer-form > .ntfy-sync-composer-tags {
+  gap: var(--size-4-1);
+  padding-bottom: var(--size-4-1);
+  padding-top: var(--size-4-1);
+}
+
+.ntfy-sync-composer-tags-description {
+  color: var(--text-muted);
+  flex: 0 1 auto;
+  font-size: var(--font-ui-small);
+  text-align: end;
+}
+
+@media (max-width: 360px) {
+  .ntfy-sync-composer-form > .ntfy-sync-composer-inline {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ntfy-sync-composer-inline .setting-item-info {
+    flex-basis: auto;
+  }
+}
+
+.ntfy-sync-composer-validation,
+.ntfy-sync-composer-status {
+  font-size: var(--font-ui-smaller);
+  line-height: var(--line-height-tight);
+  padding-inline: var(--ntfy-composer-inline-padding);
+  text-align: end;
+}
+
+.ntfy-sync-composer-validation:empty,
+.ntfy-sync-composer-status:empty {
+  display: none;
+}
+
+.ntfy-sync-composer-validation {
+  color: var(--text-error);
+}
+
+.ntfy-sync-composer-status {
+  color: var(--text-success);
+}
+
+.ntfy-sync-composer-footer .setting-item-control {
+  display: flex;
+  flex-direction: row;
+  gap: var(--size-4-2);
+  justify-content: space-between;
+}
+
+.ntfy-sync-composer-footer-container {
+  background: transparent;
+  border: 0;
+  flex: 0 0 auto;
+  padding-bottom: var(--ntfy-composer-status-bar-inset, 0px);
+}
+
+.ntfy-sync-composer-footer {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  flex: 0 0 auto;
+  padding: var(--size-4-3) var(--ntfy-composer-inline-padding) var(--size-4-2);
+}
+
+.ntfy-sync-composer-footer .setting-item-info {
+  display: none;
+}
+
+.ntfy-sync-composer-footer button {
+  flex: 0 0 auto;
+}
+
+.ntfy-sync-composer-footer [data-testid="ntfy-composer-submit"] {
+  margin-inline-start: auto;
+  min-width: 8rem;
 }
 
 .ntfy-sync-rule-list {
   display: flex;
   flex-direction: column;
   gap: var(--size-2-2);
-  margin-inline: var(--size-4-4);
+  margin-inline: 0;
+  padding-inline: 0;
+  width: 100%;
 }
 
 .ntfy-sync-rule-list.setting-group {
-  width: auto;
+  margin-inline: 0;
+  padding-inline: 0;
+  width: 100%;
+}
+
+.ntfy-sync-title-heading,
+.ntfy-sync-primary-heading,
+.ntfy-sync-rules-heading {
+  margin-inline: 0;
+  width: 100%;
 }
 
 .ntfy-sync-rule-card {

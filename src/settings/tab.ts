@@ -10,6 +10,7 @@ import type NtfySyncPlugin from "../main";
 import type { AuthConfig, ConnectionConfigV1, RuleV1, UiLanguageSetting } from "../domain/types";
 import { localizeValidationIssue, type I18n } from "../i18n";
 import { MessageDistributionRuleModal } from "../ui/rule-modal";
+import { PublishTestMessageModal } from "../ui/publish-test-modal";
 import { moveRule, removeRule, saveRuleDraft, summarizeRule } from "./rule-editor";
 import { isValidNtfyTopic, validateSettings } from "./validate";
 
@@ -67,33 +68,31 @@ export class NtfySyncSettingTab extends PluginSettingTab {
       },
     });
 
-    const definitions: SettingDefinitionItem[] = [
-      definition(
-        t("settings.title"),
-        undefined,
-        (setting) => {
-          setting.setHeading();
-          setting.settingEl.dataset.testid = "ntfy-settings-heading";
-        },
-        false,
-      ),
-      definition(t("settings.enableReceiving"), t("settings.enableReceivingDesc"), (setting) => {
+    const titleDefinition = definition(
+      t("settings.title"),
+      undefined,
+      (setting) => this.configureTitleHeading(setting),
+      false,
+    );
+    const enableDefinition = definition(
+      t("settings.enableReceiving"),
+      t("settings.enableReceivingDesc"),
+      (setting) => {
         setting.addToggle((toggle) =>
           toggle.setValue(this.plugin.settings.enabled).onChange(async (value) => {
             this.plugin.settings.enabled = value;
             await this.plugin.saveSettings(true);
           }),
         );
-      }),
-      definition(
-        t("settings.primaryConnection"),
-        undefined,
-        (setting) => {
-          setting.setHeading();
-          setting.settingEl.dataset.testid = "ntfy-primary-connection-heading";
-        },
-        false,
-      ),
+      },
+    );
+    const primaryConnectionDefinition = definition(
+      t("settings.primaryConnection"),
+      undefined,
+      (setting) => this.configurePrimaryConnectionHeading(setting),
+      false,
+    );
+    const connectionDefinitions: SettingDefinitionRender[] = [
       definition(t("settings.serverUrl"), undefined, (setting) => {
         setting
           .setClass("ntfy-sync-control-14rem")
@@ -220,7 +219,7 @@ export class NtfySyncSettingTab extends PluginSettingTab {
 
     if (connection.result) {
       const result = connection.result;
-      definitions.push(
+      connectionDefinitions.push(
         definition(t("settings.resultTopic"), t("settings.resultTopicDesc"), (setting) => {
           setting
             .setClass("ntfy-sync-control-14rem")
@@ -303,68 +302,45 @@ export class NtfySyncSettingTab extends PluginSettingTab {
       );
     }
 
-    definitions.push(
-      definition(t("settings.rules"), t("settings.rulesDesc"), (setting) => {
-        setting.setHeading().setClass("ntfy-sync-rules-heading");
-        setting.settingEl.dataset.testid = "ntfy-rules-heading";
-        setting.addButton((button) => {
-          button.buttonEl.dataset.testid = "ntfy-rule-add";
-          button
-            .setButtonText(t("settings.addRule"))
-            .setCta()
-            .onClick(() => {
-              new MessageDistributionRuleModal(this.app, this.plugin, undefined, () =>
-                this.refreshSettings(),
-              ).open();
-            });
-        });
-      }),
-      this.getRuleListDefinition(definition),
-      definition(t("language.name"), t("language.desc"), (setting) => {
-        setting.addDropdown((dropdown) => {
-          dropdown.selectEl.dataset.testid = "ntfy-ui-language";
-          dropdown
-            .addOptions({
-              auto: t("language.auto"),
-              en: t("language.en"),
-              "zh-CN": t("language.zhCN"),
-            })
-            .setValue(this.plugin.settings.uiLanguage)
-            .onChange(async (value) => {
-              await this.plugin.setUiLanguage(value as UiLanguageSetting);
-              this.refreshSettings();
-            });
-        });
-        setting.settingEl.dataset.testid = "ntfy-language-setting";
-      }),
-      definition(t("settings.validateReconnect"), undefined, (setting) => {
-        setting.addButton((button) =>
-          button
-            .setButtonText(t("settings.apply"))
-            .setCta()
-            .onClick(async () => {
-              const issues = validateSettings(this.plugin.settings);
-              if (issues.length) {
-                const first = issues[0]!;
-                new Notice(`Ntfy Sync: ${first.path}: ${localizeValidationIssue(i18n, first)}`);
-                return;
-              }
-              await this.plugin.saveSettings(true);
-              new Notice(t("notice.settingsApplied"));
-            }),
-        );
-        setting.settingEl.dataset.testid = "ntfy-apply-setting";
-      }),
+    const rulesHeadingDefinition = definition(
+      t("settings.rules"),
+      t("settings.rulesDesc"),
+      (setting) => this.configureRulesHeading(setting),
     );
+    const languageDefinition = definition(t("language.name"), t("language.desc"), (setting) => {
+      setting.addDropdown((dropdown) => {
+        dropdown.selectEl.dataset.testid = "ntfy-ui-language";
+        dropdown
+          .addOptions({
+            auto: t("language.auto"),
+            en: t("language.en"),
+            "zh-CN": t("language.zhCN"),
+          })
+          .setValue(this.plugin.settings.uiLanguage)
+          .onChange(async (value) => {
+            await this.plugin.setUiLanguage(value as UiLanguageSetting);
+            this.refreshSettings();
+          });
+      });
+      setting.settingEl.dataset.testid = "ntfy-language-setting";
+    });
 
-    return definitions;
+    return [
+      titleDefinition,
+      { type: "group", heading: "", items: [enableDefinition] },
+      primaryConnectionDefinition,
+      { type: "group", heading: "", items: connectionDefinitions },
+      rulesHeadingDefinition,
+      this.getRuleListDefinition(definition),
+      { type: "group", heading: "", items: [languageDefinition] },
+    ];
   }
 
   private getAuthSettingDefinitions(
     auth: AuthConfig,
     result: boolean,
     definition: DefinitionFactory,
-  ): SettingDefinitionItem[] {
+  ): SettingDefinitionRender[] {
     const i18n = this.plugin.i18n;
     const t: I18n["t"] = (key, variables) => i18n.t(key, variables);
     const scope = result ? "result-auth" : "read-auth";
@@ -454,6 +430,73 @@ export class NtfySyncSettingTab extends PluginSettingTab {
     this.containerEl.dataset.locale = this.plugin.i18n.locale;
   }
 
+  private configureTitleHeading(setting: Setting): void {
+    setting.setHeading().setClass("ntfy-sync-title-heading");
+    setting.settingEl.dataset.testid = "ntfy-settings-heading";
+    this.decorateHeadingWrapper(setting, "ntfy-sync-title-heading-items");
+  }
+
+  private configurePrimaryConnectionHeading(setting: Setting): void {
+    const t: I18n["t"] = (key, variables) => this.plugin.i18n.t(key, variables);
+    setting
+      .setName(t("settings.primaryConnection"))
+      .setHeading()
+      .setClass("ntfy-sync-primary-heading");
+    setting.settingEl.dataset.testid = "ntfy-primary-connection-heading";
+    this.decorateHeadingWrapper(setting, "ntfy-sync-primary-heading-items");
+    setting.addButton((button) => {
+      button.buttonEl.dataset.testid = "ntfy-publish-test-open";
+      button.setButtonText(t("settings.publishTest")).onClick(() => {
+        new PublishTestMessageModal(this.app, this.plugin).open();
+      });
+    });
+    setting.addButton((button) => {
+      button.buttonEl.dataset.testid = "ntfy-apply";
+      button
+        .setButtonText(t("settings.apply"))
+        .setCta()
+        .onClick(() => void this.applySettings());
+    });
+  }
+
+  private configureRulesHeading(setting: Setting): void {
+    const t: I18n["t"] = (key, variables) => this.plugin.i18n.t(key, variables);
+    setting
+      .setName(t("settings.rules"))
+      .setDesc(t("settings.rulesDesc"))
+      .setHeading()
+      .setClass("ntfy-sync-rules-heading");
+    setting.settingEl.dataset.testid = "ntfy-rules-heading";
+    this.decorateHeadingWrapper(setting, "ntfy-sync-rules-heading-items");
+    setting.addButton((button) => {
+      button.buttonEl.dataset.testid = "ntfy-rule-add";
+      button
+        .setButtonText(t("settings.addRule"))
+        .setCta()
+        .onClick(() => {
+          new MessageDistributionRuleModal(this.app, this.plugin, undefined, () =>
+            this.refreshSettings(),
+          ).open();
+        });
+    });
+  }
+
+  private decorateHeadingWrapper(setting: Setting, className: string): void {
+    const settingItems = setting.settingEl.parentElement;
+    if (settingItems?.classList.contains("setting-items")) settingItems.addClass(className);
+  }
+
+  private async applySettings(): Promise<void> {
+    const issues = validateSettings(this.plugin.settings);
+    if (issues.length) {
+      const first = issues[0]!;
+      new Notice(`Ntfy Sync: ${first.path}: ${localizeValidationIssue(this.plugin.i18n, first)}`);
+      return;
+    }
+    await this.plugin.saveSettings(true);
+    new Notice(this.plugin.i18n.t("notice.settingsApplied"));
+  }
+
   private refreshSettings(): void {
     const update = (this as unknown as { update?: () => void }).update;
     if (typeof update === "function") {
@@ -474,8 +517,7 @@ export class NtfySyncSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.addClass("ntfy-sync-settings");
     containerEl.dataset.locale = i18n.locale;
-    const titleHeading = new Setting(containerEl).setName(t("settings.title")).setHeading();
-    titleHeading.settingEl.dataset.testid = "ntfy-settings-heading";
+    this.configureTitleHeading(new Setting(containerEl).setName(t("settings.title")));
 
     new Setting(containerEl)
       .setName(t("settings.enableReceiving"))
@@ -490,10 +532,7 @@ export class NtfySyncSettingTab extends PluginSettingTab {
     const connection = this.plugin.settings.connections[0] ?? emptyConnection();
     if (!this.plugin.settings.connections.length) this.plugin.settings.connections.push(connection);
 
-    const connectionHeading = new Setting(containerEl)
-      .setName(t("settings.primaryConnection"))
-      .setHeading();
-    connectionHeading.settingEl.dataset.testid = "ntfy-primary-connection-heading";
+    this.configurePrimaryConnectionHeading(new Setting(containerEl));
     new Setting(containerEl)
       .setName(t("settings.serverUrl"))
       .setClass("ntfy-sync-control-14rem")
@@ -723,47 +762,12 @@ export class NtfySyncSettingTab extends PluginSettingTab {
           });
       });
     languageSetting.settingEl.dataset.testid = "ntfy-language-setting";
-
-    const applySetting = new Setting(containerEl)
-      .setName(t("settings.validateReconnect"))
-      .addButton((button) =>
-        button
-          .setButtonText(t("settings.apply"))
-          .setCta()
-          .onClick(async () => {
-            const issues = validateSettings(this.plugin.settings);
-            if (issues.length) {
-              const first = issues[0]!;
-              new Notice(`Ntfy Sync: ${first.path}: ${localizeValidationIssue(i18n, first)}`);
-              return;
-            }
-            await this.plugin.saveSettings(true);
-            new Notice(t("notice.settingsApplied"));
-          }),
-      );
-    applySetting.settingEl.dataset.testid = "ntfy-apply-setting";
   }
 
   private renderMessageDistributionRules(containerEl: HTMLElement): void {
     const i18n = this.plugin.i18n;
     const t: I18n["t"] = (key, variables) => i18n.t(key, variables);
-    const heading = new Setting(containerEl)
-      .setName(t("settings.rules"))
-      .setDesc(t("settings.rulesDesc"))
-      .setHeading()
-      .setClass("ntfy-sync-rules-heading");
-    heading.settingEl.dataset.testid = "ntfy-rules-heading";
-    heading.addButton((button) => {
-      button.buttonEl.dataset.testid = "ntfy-rule-add";
-      button
-        .setButtonText(t("settings.addRule"))
-        .setCta()
-        .onClick(() => {
-          new MessageDistributionRuleModal(this.app, this.plugin, undefined, () =>
-            this.refreshSettings(),
-          ).open();
-        });
-    });
+    this.configureRulesHeading(new Setting(containerEl));
 
     const list = containerEl.createDiv({ cls: "ntfy-sync-rule-list" });
     list.dataset.testid = "ntfy-rule-list";

@@ -49,7 +49,7 @@ if (verifyCode === 0) {
 const report = {
   schema: "obsidian.ntfy-sync.acceptance.v1",
   runId,
-  pluginVersion: "0.1.4",
+  pluginVersion: "0.1.3",
   generatedAt: new Date().toISOString(),
   gates,
   counts: {

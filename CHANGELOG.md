@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+## 0.1.6
+
+- Moved detailed rule fields, operators, path constraints, and template variables from the bilingual README files into dedicated bilingual configuration references, keeping the project landing pages concise.
+- Added a right-sidebar ntfy message composer, ribbon entry, and Obsidian commands for custom messages, editor selections, current-note links, and active Vault files, with editable connection/topic suggestions, title, Markdown, tags, a checkbox multi-select for optional priority/Click URL/email/delay/remote attachments, bilingual UI, and shared publish transport.
+- Fixed the Send selection command so the real command palette preserves Markdown editor or reading-view selections, named the ribbon entry explicitly as the Ntfy message composer, and anchored the More options popover to its trigger instead of the window edge.
+- Kept Clear and Publish above floating status bars across Default, Border, Minimal, and Things themes, including background-window and asynchronous theme-load updates.
+- Tightened the composer content inset, replaced the large heading and redundant description with an ordinary `Publish Ntfy notification` title beside Settings, and matched More options typography to native selects.
+- Made Clear preserve destination, format, selected optional fields, priority, and user-resized Message geometry while clearing payload values; shortened publish success feedback to `Message published` / `消息已发布`.
+- Matched validation and publish-success feedback to Obsidian's smaller UI typography, and added reviewed 1440×900 bilingual README screenshots with the title tab, ribbon, sidebar composer, and status bar visible.
+- Matched the MQTT Sync settings hierarchy with independent transparent title, primary-connection, and message-rules headings; moved Apply into the primary heading and removed the bottom Apply row.
+- Removed inline spacing from the message distribution rule list so cards fill the same outer width as the rules heading.
+- Added a Publish test dialog beside Apply for configured-topic text/link publishing, priority 1–5, and optional Vault text, Markdown, or common-image uploads.
+- Added cancellable single-request finite publishing that blocks redirects and avoids duplicate notifications when a response fails after sending, plus automated plain-message, binary-upload, validation, UI-layout, and real-loop acceptance coverage.
+- Limited reading-view selection retention to a short-lived, file-scoped memory cache that clears when the active leaf or file changes.
+- Added bilingual status-indicator reference diagrams with the current tooltip, status bar, and all eight icon states.
+
 ## 0.1.5
 
 - Reworked the English and Simplified Chinese README content for a clearer overview, configuration guide, acceptance matrix, security limits, and project provenance.

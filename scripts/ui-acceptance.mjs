@@ -26,6 +26,11 @@ const ui =
         mimeAria: "附件 MIME 类型",
         noConditions: "没有条件时，此规则匹配所有消息。",
         nameRequired: "必须填写名称",
+        publishTestTitle: "发布测试消息",
+        publishTestMessage: "内容",
+        publishTestPriority: "优先级",
+        publishTestFile: "文本或图片文件",
+        publishTestRequired: "请输入要发布的内容。",
         credentialNames: ["密码", "令牌", "结果密码", "结果令牌"],
         languageLabel: "插件语言",
       }
@@ -37,6 +42,11 @@ const ui =
         mimeAria: "Attachment MIME type",
         noConditions: "No conditions means this rule matches all messages.",
         nameRequired: "Rule name is required",
+        publishTestTitle: "Publish test message",
+        publishTestMessage: "Message",
+        publishTestPriority: "Priority",
+        publishTestFile: "Text or image file",
+        publishTestRequired: "Enter a message to publish.",
         credentialNames: ["Password", "Token", "Result password", "Result token"],
         languageLabel: "Language",
       };
@@ -85,7 +95,27 @@ async function obsidian(...args) {
 }
 
 async function evaluate(code) {
-  const output = await obsidian("eval", `code=${code}`);
+  const scopedCode = `
+    (() => {
+      const document =
+        activeDocument?.visibilityState === "visible" ||
+        activeDocument?.querySelector('[data-testid="ntfy-rule-modal"]')
+          ? activeDocument
+          : app.workspace.containerEl.ownerDocument;
+      const window = document.defaultView;
+      const innerWidth = window.innerWidth;
+      const innerHeight = window.innerHeight;
+      const devicePixelRatio = window.devicePixelRatio;
+      const matchMedia = window.matchMedia.bind(window);
+      const getComputedStyle = window.getComputedStyle.bind(window);
+      const Event = window.Event;
+      const KeyboardEvent = window.KeyboardEvent;
+      const MouseEvent = window.MouseEvent;
+      const PointerEvent = window.PointerEvent;
+      return eval(${JSON.stringify(code)});
+    })()
+  `;
+  const output = await obsidian("eval", `code=${scopedCode}`);
   const line = output.split(/\r?\n/).findLast((candidate) => candidate.startsWith("=> "));
   return line?.slice(3);
 }
@@ -102,13 +132,45 @@ async function evaluateRead(code) {
 }
 
 async function evaluateJson(code) {
-  const output = await evaluateRead(code);
-  if (!output) throw new Error("Obsidian eval returned no JSON result");
-  return JSON.parse(output);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const output = await evaluateRead(code);
+    if (output) return JSON.parse(output);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
+  }
+  throw new Error("Obsidian eval returned no JSON result");
 }
 
 async function cdp(method, params) {
   return obsidian("dev:cdp", `method=${method}`, `params=${JSON.stringify(params)}`);
+}
+
+async function captureActiveRenderer(method, params) {
+  if (method !== "Page.captureScreenshot") return cdp(method, params);
+  const activeRendererIsMain =
+    (await evaluateRead(`document === app.workspace.containerEl.ownerDocument`)) === "true";
+  if (activeRendererIsMain) return cdp(method, params);
+  return evaluate(`
+    (async () => {
+      const remote = require("@electron/remote");
+      const title = document.title;
+      const expectsSettings = Boolean(document.querySelector(".ntfy-sync-settings"));
+      const candidates = remote.BrowserWindow.getAllWindows()
+        .filter((candidate) => candidate.getTitle() === title && candidate.isVisible());
+      let target;
+      for (const candidate of candidates) {
+        const hasSettings = await candidate.webContents.executeJavaScript(
+          'Boolean(document.querySelector(".ntfy-sync-settings"))'
+        );
+        if (hasSettings === expectsSettings) {
+          target = candidate;
+          break;
+        }
+      }
+      if (!target) throw new Error("Active Electron renderer was not found");
+      const image = await target.webContents.capturePage();
+      return JSON.stringify({ data: image.toPNG().toString("base64") });
+    })()
+  `);
 }
 
 async function waitFor(predicate, label, timeoutMs = 5_000) {
@@ -120,11 +182,73 @@ async function waitFor(predicate, label, timeoutMs = 5_000) {
   throw new Error(`Timed out waiting for ${label}`);
 }
 
+async function openStatusTooltip() {
+  const tooltipReady = async () => {
+    const tooltip = await evaluateJson(`
+      JSON.stringify({
+        count: document.querySelectorAll(".tooltip.ntfy-sync-status-tooltip").length,
+        title: document.querySelector(".ntfy-sync-status-tooltip-title")?.textContent ?? "",
+        rows: document.querySelectorAll(".ntfy-sync-status-tooltip-row").length
+      })
+    `);
+    return tooltip.count === 1 && tooltip.title.startsWith("Ntfy Sync — ") && tooltip.rows >= 8;
+  };
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const pointer = await evaluateJson(`
+      (() => {
+        const element = document.querySelector('[data-testid="ntfy-sync-status"]');
+        const rect = element?.getBoundingClientRect();
+        return JSON.stringify({
+          found: Boolean(element),
+          x: rect ? rect.x + rect.width / 2 : 0,
+          y: rect ? rect.y + rect.height / 2 : 0
+        });
+      })()
+    `);
+    assert(pointer.found, "status bar element disappeared before tooltip interaction");
+    await cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: 1,
+      y: 1,
+      button: "none",
+    });
+    await cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: pointer.x,
+      y: pointer.y,
+      button: "none",
+    });
+    await evaluate(`
+      (() => {
+        const element = document.querySelector('[data-testid="ntfy-sync-status"]');
+        const rect = element.getBoundingClientRect();
+        for (const type of ["pointerenter", "pointerover", "mouseenter", "mouseover", "mousemove"]) {
+          const EventType = type.startsWith("pointer") ? PointerEvent : MouseEvent;
+          element.dispatchEvent(new EventType(type, {
+            bubbles: true,
+            clientX: rect.x + rect.width / 2,
+            clientY: rect.y + rect.height / 2,
+            view: window,
+            pointerType: "mouse"
+          }));
+        }
+        return "hovered";
+      })()
+    `);
+    try {
+      await waitFor(tooltipReady, "status tooltip", 2_000);
+      return;
+    } catch (error) {
+      if (attempt === 3) throw error;
+    }
+  }
+}
+
 async function captureScreenshot(path, label, readyExpression) {
   const evidence = await captureStableScreenshot({
     path,
     label,
-    cdp,
+    cdp: captureActiveRenderer,
     readState: () => readScreenshotState(label, readyExpression),
   });
   screenshotEvidence[basename(path)] = evidence;
@@ -142,19 +266,20 @@ async function readScreenshotState(label, readyExpression) {
       const root = document.querySelector('.ntfy-sync-settings');
       const scroll = root;
       const ruleModal = byId('ntfy-rule-modal');
-      const modalTitle = ruleModal?.querySelector('.modal-title')?.textContent ?? '';
+      const publishModal = byId('ntfy-publish-test-modal');
+      const modal = ruleModal ?? publishModal;
+      const modalTitle = modal?.querySelector('.modal-title')?.textContent ?? '';
       const tooltip = document.querySelector('.tooltip.ntfy-sync-status-tooltip');
       const suggestion = document.querySelector('.ntfy-sync-mime-suggestion-container');
       const visibleSuggestions = [...document.querySelectorAll('[data-testid="ntfy-rule-mime-suggestion"]')]
         .filter((item) => visible(item));
-      const applySetting = byId('ntfy-apply-setting')?.closest('.setting-item');
-      const geometry = [...document.querySelectorAll('.ntfy-sync-settings [data-testid], [data-testid="ntfy-rule-modal"] [data-testid], .ntfy-sync-status-tooltip')]
+      const geometry = [...document.querySelectorAll('.ntfy-sync-settings [data-testid], [data-testid="ntfy-rule-modal"] [data-testid], [data-testid="ntfy-publish-test-modal"] [data-testid], .ntfy-sync-status-tooltip')]
         .filter((element) => visible(element))
         .map((element) => {
           const rect = element.getBoundingClientRect();
           return [element.dataset.testid ?? element.className, Math.round(rect.x), Math.round(rect.y), Math.round(rect.width), Math.round(rect.height)];
         });
-      const safeValues = [...document.querySelectorAll('.ntfy-sync-settings input, [data-testid="ntfy-rule-modal"] input, [data-testid="ntfy-rule-modal"] select')]
+      const safeValues = [...document.querySelectorAll('.ntfy-sync-settings input, [data-testid="ntfy-rule-modal"] input, [data-testid="ntfy-rule-modal"] select, [data-testid="ntfy-publish-test-modal"] input, [data-testid="ntfy-publish-test-modal"] textarea')]
         .filter((element) => element.type !== 'password')
         .map((element) => [element.dataset.testid ?? '', element.value]);
       const signatureSource = JSON.stringify({
@@ -201,15 +326,43 @@ async function openSettings() {
   return evaluateJson(`
     (() => {
       const plugin = app.plugins.getPlugin("ntfy-sync");
+      const titleHeading = document.querySelector('[data-testid="ntfy-settings-heading"]');
+      const primaryHeading = document.querySelector('[data-testid="ntfy-primary-connection-heading"]');
+      const primaryHeadingName = primaryHeading?.querySelector(".setting-item-name");
       const rulesHeading = document.querySelector('[data-testid="ntfy-rules-heading"]');
       const rulesHeadingName = rulesHeading?.querySelector(".setting-item-name");
       const addRule = document.querySelector('[data-testid="ntfy-rule-add"]');
       const ruleList = document.querySelector('[data-testid="ntfy-rule-list"]');
       const firstRuleCard = document.querySelector('[data-testid="ntfy-rule-card-0"]');
       const languageSetting = document.querySelector('[data-testid="ntfy-language-setting"]');
-      const applySetting = document.querySelector('[data-testid="ntfy-apply-setting"]');
+      const publishTest = document.querySelector('[data-testid="ntfy-publish-test-open"]');
+      const apply = document.querySelector('[data-testid="ntfy-apply"]');
       const ruleCards = [...document.querySelectorAll('.ntfy-sync-rule-card')];
+      const titleWrapper = titleHeading?.closest('.setting-items');
+      const titleGroup = titleWrapper?.closest('.setting-group');
+      const firstSettingsGroup = titleGroup?.nextElementSibling;
+      const firstSetting = firstSettingsGroup?.querySelector('.setting-item');
+      const primaryWrapper = primaryHeading?.closest('.setting-items');
+      const primaryGroup = primaryWrapper?.closest('.setting-group');
+      const rulesWrapper = rulesHeading?.closest('.setting-items');
+      const rulesGroup = rulesWrapper?.closest('.setting-group');
+      const titleRect = titleHeading?.getBoundingClientRect();
+      const firstSettingRect = firstSetting?.getBoundingClientRect();
+      const titleHeadingMarginBottom = titleHeading
+        ? Number.parseFloat(getComputedStyle(titleHeading).marginBottom)
+        : Number.NaN;
+      const titleToFirstSettingGap = titleRect && firstSettingRect
+        ? firstSettingRect.top - titleRect.bottom
+        : Number.NaN;
       const aligned = (first, second) => Math.abs(first - second) <= 0.5;
+      const transparent = (element) => {
+        const wrapper = element?.parentElement;
+        return Boolean(
+          wrapper?.classList.contains('setting-items') &&
+          getComputedStyle(wrapper).backgroundColor === 'rgba(0, 0, 0, 0)' &&
+          Number.parseFloat(getComputedStyle(wrapper).borderTopWidth) === 0
+        );
+      };
       const textRect = (element) => {
         if (!element) return undefined;
         const range = document.createRange();
@@ -217,7 +370,11 @@ async function openSettings() {
         return range.getBoundingClientRect();
       };
       const rulesHeadingTextRect = textRect(rulesHeadingName);
+      const primaryHeadingTextRect = textRect(primaryHeadingName);
       const addRuleRect = addRule?.getBoundingClientRect();
+      const applyRect = apply?.getBoundingClientRect();
+      const publishTestRect = publishTest?.getBoundingClientRect();
+      const status = plugin.statusElement;
       return JSON.stringify({
         active: app.setting.activeTab?.id,
         manifestName: plugin.manifest.name,
@@ -230,16 +387,20 @@ async function openSettings() {
         addRightOfTitle: Boolean(
           addRuleRect &&
           rulesHeadingTextRect &&
-          addRuleRect.left > rulesHeadingTextRect.right &&
-          addRuleRect.top < rulesHeadingTextRect.bottom &&
-          addRuleRect.bottom > rulesHeadingTextRect.top
+          addRuleRect.left > rulesHeadingTextRect.left
         ),
         ruleListAligned: Boolean(
           ruleList &&
-          rulesHeadingName &&
-          addRule &&
-          aligned(ruleList.getBoundingClientRect().left, rulesHeadingName.getBoundingClientRect().left) &&
-          aligned(ruleList.getBoundingClientRect().right, addRule.getBoundingClientRect().right)
+          rulesHeading &&
+          aligned(ruleList.getBoundingClientRect().left, rulesHeading.getBoundingClientRect().left) &&
+          aligned(ruleList.getBoundingClientRect().right, rulesHeading.getBoundingClientRect().right)
+        ),
+        ruleListHasNoInlineSpacing: Boolean(
+          ruleList &&
+          Number.parseFloat(getComputedStyle(ruleList).marginLeft) === 0 &&
+          Number.parseFloat(getComputedStyle(ruleList).marginRight) === 0 &&
+          Number.parseFloat(getComputedStyle(ruleList).paddingLeft) === 0 &&
+          Number.parseFloat(getComputedStyle(ruleList).paddingRight) === 0
         ),
         firstCardFillsList: Boolean(
           firstRuleCard &&
@@ -261,14 +422,47 @@ async function openSettings() {
         rawJsonControlCount: document.querySelectorAll(
           '[data-testid="ntfy-rules-json"], [data-testid="ntfy-templates-json"]'
         ).length,
-        languageImmediatelyBeforeApply: Boolean(
-          languageSetting && applySetting && languageSetting.nextElementSibling === applySetting
+        headingsTransparent: [titleHeading, primaryHeading, rulesHeading].every(transparent),
+        titleGroupStructure: Boolean(
+          titleWrapper &&
+          titleGroup &&
+          firstSettingsGroup?.classList.contains('setting-group') &&
+          titleWrapper.children.length === 1
         ),
-        applyIsLastSetting: Boolean(applySetting && applySetting.nextElementSibling === null),
-        statusCount: document.querySelectorAll('[data-testid="ntfy-sync-status"]').length,
-        statusState: document.querySelector('[data-testid="ntfy-sync-status"]')?.dataset.status,
-        statusSvg: Boolean(document.querySelector('[data-testid="ntfy-sync-status"] svg')),
-        statusTooltip: document.querySelector('[data-testid="ntfy-sync-status"]')?.getAttribute("aria-label") ?? ""
+        titleWrapperPaddingBottom: titleWrapper
+          ? Number.parseFloat(getComputedStyle(titleWrapper).paddingBottom)
+          : Number.NaN,
+        titleNextGroupMarginTop: firstSettingsGroup
+          ? Number.parseFloat(getComputedStyle(firstSettingsGroup).marginTop)
+          : Number.NaN,
+        titleHeadingMarginBottom,
+        titleToFirstSettingGap,
+        primaryNextGroupMarginTop: primaryGroup?.nextElementSibling
+          ? Number.parseFloat(getComputedStyle(primaryGroup.nextElementSibling).marginTop)
+          : Number.NaN,
+        rulesNextGroupMarginTop: rulesGroup?.nextElementSibling
+          ? Number.parseFloat(getComputedStyle(rulesGroup.nextElementSibling).marginTop)
+          : Number.NaN,
+        configuredTopicCount: plugin.settings.connections[0]?.topics.length ?? 0,
+        publishTestCount: document.querySelectorAll('[data-testid="ntfy-publish-test-open"]').length,
+        publishTestInPrimaryHeading: Boolean(publishTest && primaryHeading?.contains(publishTest)),
+        publishTestLeftOfApply: Boolean(
+          publishTestRect && applyRect && publishTestRect.right <= applyRect.left
+        ),
+        applyCount: document.querySelectorAll('[data-testid="ntfy-apply"]').length,
+        applyInPrimaryHeading: Boolean(apply && primaryHeading?.contains(apply)),
+        applyRightOfTitle: Boolean(
+          applyRect && primaryHeadingTextRect && applyRect.left > primaryHeadingTextRect.right
+        ),
+        legacyBottomApplyCount: document.querySelectorAll('[data-testid="ntfy-apply-setting"]').length,
+        languageBelowRules: Boolean(
+          languageSetting && ruleList &&
+          languageSetting.getBoundingClientRect().top >= ruleList.getBoundingClientRect().bottom
+        ),
+        statusCount: status ? 1 : 0,
+        statusState: status?.dataset.status,
+        statusSvg: Boolean(status?.querySelector("svg")),
+        statusTooltip: status?.getAttribute("aria-label") ?? ""
       });
     })()
   `);
@@ -375,6 +569,14 @@ try {
     (await evaluateRead(`app.plugins.enabledPlugins.has("ntfy-sync")`)) === "true";
   if (originalPluginEnabled) await obsidian("plugin:reload", "id=ntfy-sync");
   else await obsidian("plugin:enable", "id=ntfy-sync");
+  await evaluate(`
+    (() => {
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      app.setting.close();
+      plugin.statusElement?.ownerDocument.defaultView?.focus();
+      return "main-window-focused";
+    })()
+  `);
   await obsidian("dev:debug", "on");
   debugAttached = true;
 
@@ -389,7 +591,7 @@ try {
         document.head.append(style);
       }
       document.querySelectorAll('.tooltip.ntfy-sync-status-tooltip').forEach((tooltip) => tooltip.remove());
-      document.querySelectorAll('[data-testid="ntfy-rule-cancel"]').forEach((button) => button.click());
+      document.querySelectorAll('[data-testid="ntfy-rule-cancel"], [data-testid="ntfy-publish-test-cancel"]').forEach((button) => button.click());
       return "stale-modals-closed";
     })()
   `);
@@ -421,6 +623,12 @@ try {
     );
   }
   assert(
+    opened.publishTestCount === 1 &&
+      opened.publishTestInPrimaryHeading &&
+      opened.publishTestLeftOfApply,
+    "Publish test is not uniquely placed left of Apply in the primary connection heading",
+  );
+  assert(
     hostAndPluginLanguage.preference === pluginLanguage &&
       hostAndPluginLanguage.locale === pluginLanguage,
     `target plugin language was not applied: ${JSON.stringify(hostAndPluginLanguage)}`,
@@ -437,8 +645,8 @@ try {
   assert(opened.addCount === 1, "Add rule button is missing or duplicated");
   assert(opened.addInHeading && opened.addRightOfTitle, "Add rule is not right-aligned in heading");
   assert(
-    opened.ruleListAligned && opened.firstCardFillsList,
-    "rule cards do not align with the heading title and Add rule button",
+    opened.ruleListAligned && opened.ruleListHasNoInlineSpacing && opened.firstCardFillsList,
+    "rule cards do not fill the same outer width as the rules heading",
   );
   assert(opened.compactRuleHeadings, "rule names and note paths do not share one card row");
   assert(
@@ -446,17 +654,202 @@ try {
     "raw rules/templates JSON controls remain visible",
   );
   assert(
-    opened.languageImmediatelyBeforeApply && opened.applyIsLastSetting,
-    "plugin language is not immediately above the final Apply setting",
+    opened.headingsTransparent,
+    "title, primary connection, or rules heading has a card background",
   );
+  assert(opened.titleGroupStructure, "declarative title and first setting groups are malformed");
+  assert(
+    opened.titleWrapperPaddingBottom === 0 &&
+      opened.titleNextGroupMarginTop === 0 &&
+      opened.titleToFirstSettingGap >= 0 &&
+      opened.titleToFirstSettingGap <= opened.titleHeadingMarginBottom + 0.5,
+    `title-to-first-setting spacing is not compact: ${JSON.stringify({
+      paddingBottom: opened.titleWrapperPaddingBottom,
+      groupMarginTop: opened.titleNextGroupMarginTop,
+      headingMarginBottom: opened.titleHeadingMarginBottom,
+      gap: opened.titleToFirstSettingGap,
+    })}`,
+  );
+  assert(
+    opened.primaryNextGroupMarginTop > 0 && opened.rulesNextGroupMarginTop > 0,
+    "title spacing override leaked into primary connection or rules groups",
+  );
+  assert(
+    opened.applyCount === 1 &&
+      opened.applyInPrimaryHeading &&
+      opened.applyRightOfTitle &&
+      opened.legacyBottomApplyCount === 0,
+    "Apply is not uniquely right-aligned in the primary connection heading",
+  );
+  assert(opened.languageBelowRules, "plugin language setting is not below the rule list");
   checks.settingsOpened = true;
   checks.rawJsonSettingsRemoved = true;
   checks.addRuleInHeading = true;
   checks.ruleListAlignedWithHeading = true;
+  checks.ruleListHasNoInlineSpacing = true;
   checks.ruleNameAndNotePathShareRow = true;
-  checks.languageImmediatelyBeforeApply = true;
+  checks.transparentSectionHeadings = true;
+  checks.titleToFirstSettingSpacingCompact = true;
+  checks.titleSpacingOverrideScoped = true;
+  checks.publishTestLeftOfApply = true;
+  checks.applyInPrimaryHeading = true;
+  checks.bottomApplyRemoved = true;
+  checks.languageBelowRules = true;
   checks.displayNameCapitalized = true;
   checks.baselineRuleCount = baselineCount;
+
+  await click("ntfy-publish-test-open");
+  await waitFor(async () => {
+    const state = await evaluateJson(`
+      (() => {
+        const modal = document.querySelector('[data-testid="ntfy-publish-test-modal"]');
+        const topic = modal?.querySelector('[data-testid="ntfy-publish-test-topic"]');
+        const topicSearch = modal?.querySelector('[data-testid="ntfy-publish-test-topic-search"]');
+        return JSON.stringify({
+          title: modal?.querySelector('.modal-title')?.textContent ?? '',
+          topicTag: topic?.tagName ?? '',
+          topicPrefilled: app.plugins.getPlugin("ntfy-sync").settings.connections[0].topics.includes(topic?.value),
+          nativeSearch: Boolean(topicSearch?.classList.contains('search-input-container')),
+          clearCount: topicSearch?.querySelectorAll('[data-testid="ntfy-publish-test-topic-clear"]').length ?? 0,
+          priorityLabel: modal?.querySelector('[data-testid="ntfy-publish-test-priority"]')
+            ?.closest('.setting-item')?.querySelector('.setting-item-name')?.textContent ?? '',
+          priorityValue: modal?.querySelector('[data-testid="ntfy-publish-test-priority"]')?.value ?? '',
+          messageLabel: modal?.querySelector('[data-testid="ntfy-publish-test-message"]')
+            ?.closest('.setting-item')?.querySelector('.setting-item-name')?.textContent ?? '',
+          fileLabel: modal?.querySelector('[data-testid="ntfy-publish-test-file"]')
+            ?.closest('.setting-item')?.querySelector('.setting-item-name')?.textContent ?? '',
+          fileSearch: Boolean(modal?.querySelector('[data-testid="ntfy-publish-test-file-search"].search-input-container')),
+          fileClearCount: modal?.querySelectorAll('[data-testid="ntfy-publish-test-file-clear"]').length ?? 0,
+          nonEmptyDescriptions: [...(modal?.querySelectorAll('.setting-item-description') ?? [])]
+            .filter((description) => description.textContent?.trim()).length,
+          fileAboveMessage: (() => {
+            const file = modal?.querySelector('[data-testid="ntfy-publish-test-file"]')
+              ?.closest('.setting-item')?.getBoundingClientRect();
+            const message = modal?.querySelector('[data-testid="ntfy-publish-test-message"]')
+              ?.closest('.setting-item')?.getBoundingClientRect();
+            return Boolean(file && message && file.bottom <= message.top);
+          })(),
+          submitCount: modal?.querySelectorAll('[data-testid="ntfy-publish-test-submit"]').length ?? 0
+        });
+      })()
+    `);
+    return (
+      state.title === ui.publishTestTitle &&
+      state.topicTag === "INPUT" &&
+      state.topicPrefilled &&
+      state.nativeSearch &&
+      state.clearCount === 1 &&
+      state.priorityLabel === ui.publishTestPriority &&
+      state.priorityValue === "3" &&
+      state.messageLabel === ui.publishTestMessage &&
+      state.fileLabel === ui.publishTestFile &&
+      state.fileSearch &&
+      state.fileClearCount === 1 &&
+      state.nonEmptyDescriptions === 0 &&
+      state.fileAboveMessage &&
+      state.submitCount === 1
+    );
+  }, "publish test modal structure");
+  await click("ntfy-publish-test-topic-clear");
+  await waitFor(async () => {
+    const state = await evaluateJson(`
+      JSON.stringify({
+        value: document.querySelector('[data-testid="ntfy-publish-test-topic"]')?.value ?? '',
+        suggestions: document.querySelectorAll('[data-testid="ntfy-publish-test-topic-suggestion"]').length
+      })
+    `);
+    return state.value === "" && state.suggestions === opened.configuredTopicCount;
+  }, "publish test topic clear and suggestions");
+  await click("ntfy-publish-test-topic-suggestion");
+  await waitFor(async () => {
+    const configured = await evaluateRead(`
+      (() => {
+        const plugin = app.plugins.getPlugin("ntfy-sync");
+        const value = document.querySelector('[data-testid="ntfy-publish-test-topic"]')?.value;
+        return plugin.settings.connections[0].topics.includes(value);
+      })()
+    `);
+    return configured === "true";
+  }, "publish test topic suggestion selection");
+  await evaluate(`
+    (() => {
+      const input = document.querySelector('[data-testid="ntfy-publish-test-file"]');
+      input?.focus();
+      input?.click();
+      return "focused";
+    })()
+  `);
+  await waitFor(async () => {
+    const suggestions = await evaluateRead(
+      `document.querySelectorAll('[data-testid="ntfy-publish-test-file-suggestion"]').length`,
+    );
+    return Number(suggestions) > 0;
+  }, "publish test Vault file suggestions");
+  await click("ntfy-publish-test-file-suggestion");
+  const selectedFile = await evaluateJson(`
+    (() => {
+      const value = document.querySelector('[data-testid="ntfy-publish-test-file"]')?.value ?? '';
+      const file = app.vault.getAbstractFileByPath(value);
+      return JSON.stringify({ selected: Boolean(file), valuePresent: value.length > 0 });
+    })()
+  `);
+  assert(selectedFile.selected && selectedFile.valuePresent, "publish test file suggestion failed");
+  await click("ntfy-publish-test-file-clear");
+  await waitFor(
+    async () =>
+      (await evaluateRead(
+        `document.querySelector('[data-testid="ntfy-publish-test-file"]')?.value === ""`,
+      )) === "true",
+    "publish test file clear",
+  );
+  await evaluate(`
+    (() => {
+      const input = document.querySelector('[data-testid="ntfy-publish-test-file"]');
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      input?.blur();
+      document.querySelector('[data-testid="ntfy-publish-test-message"]')?.focus();
+      return "dismissed";
+    })()
+  `);
+  await waitFor(
+    async () =>
+      Number(
+        await evaluateRead(
+          `document.querySelectorAll('[data-testid="ntfy-publish-test-topic-suggestion"], [data-testid="ntfy-publish-test-file-suggestion"]').length`,
+        ),
+      ) === 0,
+    "publish test suggestions dismissed",
+  );
+  if (documentScreenshots) {
+    await captureScreenshot(
+      resolve(artifactDirectory, "publish-test-modal-layout.png"),
+      "publish-test-modal",
+      `publishModal && !ruleModal && modalTitle === ${JSON.stringify(ui.publishTestTitle)} && visible(byId('ntfy-publish-test-topic')) && visible(byId('ntfy-publish-test-priority')) && visible(byId('ntfy-publish-test-file')) && visible(byId('ntfy-publish-test-message')) && document.querySelectorAll('[data-testid="ntfy-publish-test-topic-suggestion"], [data-testid="ntfy-publish-test-file-suggestion"]').length === 0 && byId('ntfy-publish-test-file').closest('.setting-item').getBoundingClientRect().bottom <= byId('ntfy-publish-test-message').closest('.setting-item').getBoundingClientRect().top`,
+    );
+    checks.publishTestModalScreenshotCaptured = true;
+  }
+  await click("ntfy-publish-test-submit");
+  await waitFor(async () => {
+    const message = await evaluateRead(
+      `document.querySelector('[data-testid="ntfy-publish-test-validation"]')?.textContent`,
+    );
+    return message === ui.publishTestRequired;
+  }, "empty publish test validation");
+  await setInput("ntfy-publish-test-message", "https://example.invalid/clipping");
+  const publishValidationCleared = await evaluateRead(
+    `document.querySelector('[data-testid="ntfy-publish-test-validation"]')?.textContent === ""`,
+  );
+  assert(publishValidationCleared === "true", "publish test validation did not clear on input");
+  await click("ntfy-publish-test-cancel");
+  await waitFor(
+    async () =>
+      (await evaluateRead(
+        `document.querySelectorAll('[data-testid="ntfy-publish-test-modal"]').length`,
+      )) === "0",
+    "publish test modal cancellation",
+  );
+  checks.publishTestModal = true;
+  checks.publishTestValidation = true;
 
   await setInput("ntfy-ui-language", "zh-CN", "change");
   await waitFor(async () => {
@@ -469,7 +862,7 @@ try {
           locale: root?.dataset.locale,
           languageLabel: document.querySelector('[data-testid="ntfy-language-setting"] .setting-item-name')?.textContent,
           rulesLabel: document.querySelector('[data-testid="ntfy-rules-heading"] .setting-item-name')?.textContent,
-          status: document.querySelector('[data-testid="ntfy-sync-status"]')?.getAttribute("aria-label")
+          status: plugin.statusElement?.getAttribute("aria-label")
         });
       })()
     `);
@@ -802,6 +1195,26 @@ try {
   );
   assert(opened.statusTooltip.startsWith("Ntfy Sync — "), "status tooltip summary is missing");
   const originalStatusState = opened.statusState;
+  await evaluate(`
+    (() => {
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      app.setting.close();
+      plugin.statusElement?.ownerDocument.defaultView?.focus();
+      return "status-window-focused";
+    })()
+  `);
+  await waitFor(async () => {
+    const state = await evaluateJson(`
+      (() => {
+        const plugin = app.plugins.getPlugin("ntfy-sync");
+        return JSON.stringify({
+          settingsRoot: document.querySelectorAll(".ntfy-sync-settings").length,
+          statusInDocument: plugin.statusElement?.ownerDocument === document
+        });
+      })()
+    `);
+    return state.settingsRoot === 0 && state.statusInDocument;
+  }, "status bar renderer focus");
   let reducedMotionAnimation;
   try {
     await cdp("Emulation.setEmulatedMedia", {
@@ -822,33 +1235,7 @@ try {
   }
   assert(reducedMotionAnimation === "none", "reduced motion does not disable status animation");
   checks.reducedMotionDisablesStatusAnimation = true;
-  await evaluate(`
-    (() => {
-      const element = document.querySelector('[data-testid="ntfy-sync-status"]');
-      const rect = element.getBoundingClientRect();
-      for (const type of ["pointerenter", "pointerover", "mouseenter", "mouseover", "mousemove"]) {
-        const EventType = type.startsWith("pointer") ? PointerEvent : MouseEvent;
-        element.dispatchEvent(new EventType(type, {
-          bubbles: true,
-          clientX: rect.x + rect.width / 2,
-          clientY: rect.y + rect.height / 2,
-          view: window,
-          pointerType: "mouse"
-        }));
-      }
-      return "hovered";
-    })()
-  `);
-  await waitFor(async () => {
-    const tooltip = await evaluateJson(`
-      JSON.stringify({
-        count: document.querySelectorAll(".tooltip.ntfy-sync-status-tooltip").length,
-        title: document.querySelector(".ntfy-sync-status-tooltip-title")?.textContent ?? "",
-        rows: document.querySelectorAll(".ntfy-sync-status-tooltip-row").length
-      })
-    `);
-    return tooltip.count === 1 && tooltip.title.startsWith("Ntfy Sync — ") && tooltip.rows >= 8;
-  }, "status tooltip");
+  await openStatusTooltip();
   const tooltipColumns = await evaluateJson(`
     (() => {
       const tooltip = document.querySelector(".tooltip.ntfy-sync-status-tooltip");
@@ -903,9 +1290,12 @@ try {
   await evaluate(`
     (() => {
       app.setting.close();
-      const element = document.querySelector('[data-testid="ntfy-sync-status"]');
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      const element = plugin.statusElement;
       if (!element) throw new Error("status indicator is missing");
-      element.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, view: window }));
+      const statusWindow = element.ownerDocument.defaultView;
+      statusWindow.focus();
+      element.dispatchEvent(new statusWindow.MouseEvent("dblclick", { bubbles: true, view: statusWindow }));
       return "double-clicked";
     })()
   `);
@@ -922,8 +1312,34 @@ try {
   await evaluate(`
     (() => {
       app.setting.close();
-      const element = document.querySelector('[data-testid="ntfy-sync-status"]');
-      element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      const element = plugin.statusElement;
+      if (!element) throw new Error("status indicator is missing");
+      const statusWindow = element.ownerDocument.defaultView;
+      statusWindow.focus();
+      return "status-window-focused";
+    })()
+  `);
+  await waitFor(async () => {
+    const state = await evaluateJson(`
+      JSON.stringify({
+        activeSettingsVisible:
+          activeDocument.querySelector(".ntfy-sync-settings") !== null &&
+          activeDocument.visibilityState === "visible",
+        statusInDocument:
+          app.plugins.getPlugin("ntfy-sync").statusElement?.ownerDocument === document
+      })
+    `);
+    return !state.activeSettingsVisible && state.statusInDocument;
+  }, "status renderer before keyboard navigation");
+  await evaluate(`
+    (() => {
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      const element = plugin.statusElement;
+      if (!element) throw new Error("status indicator is missing");
+      const statusWindow = element.ownerDocument.defaultView;
+      element.focus();
+      element.dispatchEvent(new statusWindow.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
       return "pressed";
     })()
   `);
@@ -939,15 +1355,50 @@ try {
   checks.statusKeyboardOpensSettings = true;
   await evaluate(`
     (() => {
-      const element = document.querySelector('[data-testid="ntfy-sync-status"]');
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      app.setting.close();
+      const element = plugin.statusElement;
+      if (!element) throw new Error("status indicator is missing");
+      const statusWindow = element.ownerDocument.defaultView;
+      statusWindow.focus();
+      return "status-window-focused";
+    })()
+  `);
+  await waitFor(async () => {
+    const state = await evaluateJson(`
+      JSON.stringify({
+        activeSettingsVisible:
+          activeDocument.querySelector(".ntfy-sync-settings") !== null &&
+          activeDocument.visibilityState === "visible",
+        statusInDocument:
+          app.plugins.getPlugin("ntfy-sync").statusElement?.ownerDocument === document
+      })
+    `);
+    return !state.activeSettingsVisible && state.statusInDocument;
+  }, "status renderer before tooltip theme validation");
+  await evaluate(`
+    (() => {
+      const plugin = app.plugins.getPlugin("ntfy-sync");
+      const element = plugin.statusElement;
+      if (!element) throw new Error("status indicator is missing");
+      const statusWindow = element.ownerDocument.defaultView;
+      for (const type of ["pointerleave", "pointerout", "mouseleave", "mouseout"]) {
+        const EventType = type.startsWith("pointer") ? statusWindow.PointerEvent : statusWindow.MouseEvent;
+        element.dispatchEvent(new EventType(type, {
+          bubbles: true,
+          view: statusWindow,
+          pointerType: "mouse"
+        }));
+      }
+      document.querySelectorAll(".tooltip.ntfy-sync-status-tooltip").forEach((tooltip) => tooltip.remove());
       const rect = element.getBoundingClientRect();
       for (const type of ["pointerenter", "pointerover", "mouseenter", "mouseover", "mousemove"]) {
-        const EventType = type.startsWith("pointer") ? PointerEvent : MouseEvent;
+        const EventType = type.startsWith("pointer") ? statusWindow.PointerEvent : statusWindow.MouseEvent;
         element.dispatchEvent(new EventType(type, {
           bubbles: true,
           clientX: rect.x + rect.width / 2,
           clientY: rect.y + rect.height / 2,
-          view: window,
+          view: statusWindow,
           pointerType: "mouse"
         }));
       }
@@ -1002,6 +1453,8 @@ try {
       return 'status-hover-ended';
     })()
   `);
+
+  await openSettings();
 
   await click("ntfy-rule-add");
   const ruleModalLayout = await evaluateJson(`
@@ -1439,16 +1892,17 @@ try {
   const screenshotPath = resolve(artifactDirectory, "rules-settings.png");
   await evaluate(`
     (() => {
-      const root = document.querySelector('.ntfy-sync-settings');
-      const applySetting = document.querySelector('[data-testid="ntfy-apply-setting"]')?.closest('.setting-item');
-      applySetting?.scrollIntoView({ block: 'end' });
+      const languageSetting = document.querySelector('[data-testid="ntfy-language-setting"]');
+      const languageSelect = languageSetting?.querySelector('select');
+      languageSetting?.scrollIntoView({ block: 'end' });
+      languageSelect?.focus({ preventScroll: true });
       return "final-rules-scrolled";
     })()
   `);
   await captureScreenshot(
     screenshotPath,
     "final-rules-settings",
-    `root && !ruleModal && !tooltip && applySetting && (scroll?.scrollTop ?? 0) > 1 && document.querySelectorAll('.ntfy-sync-rule-card').length === ${baselineCount}`,
+    `root && !ruleModal && !tooltip && visible(byId('ntfy-language-setting')) && document.activeElement === byId('ntfy-language-setting')?.querySelector('select') && (scroll?.scrollTop ?? 0) > 1 && document.querySelectorAll('.ntfy-sync-rule-card').length === ${baselineCount}`,
   );
   checks.screenshotCaptured = true;
 
@@ -1466,7 +1920,7 @@ try {
   if (vaultName) {
     try {
       await evaluate(
-        `document.querySelectorAll('[data-testid="ntfy-rule-cancel"]').forEach((button) => button.click()); document.querySelectorAll('.tooltip.ntfy-sync-status-tooltip').forEach((tooltip) => tooltip.remove()); "closed"`,
+        `document.querySelectorAll('[data-testid="ntfy-rule-cancel"], [data-testid="ntfy-publish-test-cancel"]').forEach((button) => button.click()); document.querySelectorAll('.tooltip.ntfy-sync-status-tooltip').forEach((tooltip) => tooltip.remove()); "closed"`,
       );
     } catch {
       // The modal is normally already closed.
@@ -1483,14 +1937,18 @@ try {
       if (originalPluginEnabled) {
         await obsidian("plugin:reload", "id=ntfy-sync");
         await evaluate(
-          `document.querySelectorAll('[data-testid="ntfy-rule-cancel"]').forEach((button) => button.click()); "closed"`,
+          `document.querySelectorAll('[data-testid="ntfy-rule-cancel"], [data-testid="ntfy-publish-test-cancel"]').forEach((button) => button.click()); "closed"`,
         );
       } else {
         await obsidian("plugin:disable", "id=ntfy-sync");
       }
-      checks.originalPluginEnabledRestored =
-        ((await evaluate(`app.plugins.enabledPlugins.has("ntfy-sync")`)) === "true") ===
-        originalPluginEnabled;
+      await waitFor(
+        async () =>
+          ((await evaluateRead(`app.plugins.enabledPlugins.has("ntfy-sync")`)) === "true") ===
+          originalPluginEnabled,
+        "original plugin enabled state",
+      );
+      checks.originalPluginEnabledRestored = true;
     } catch {
       // Preserve the original data even if the app closes during cleanup.
       checks.originalPluginEnabledRestored = false;
